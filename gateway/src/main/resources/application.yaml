@@ -1,0 +1,59 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: gateway
+
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: http://localhost:8081
+
+  cloud:
+    compatibility-verifier:
+      enabled: false
+
+    discovery:
+      client:
+        simple:
+          instances:
+            login:
+              - uri: http://localhost:8081
+            trade:
+              - uri: http://localhost:8082
+
+    gateway:
+      default-filters:
+        - DedupeResponseHeader=Access-Control-Allow-Origin Access-Control-Allow-Credentials Access-Control-Allow-Methods Access-Control-Allow-Headers, RETAIN_FIRST
+      routes:
+        - id: auth
+          uri: lb://login
+          predicates:
+            - Path=/auth/**
+
+        - id: login
+          uri: lb://login
+          predicates:
+            - Path=/login/**
+
+        - id: trade
+          uri: lb://trade
+          predicates:
+            - Path=/cards/**, /binders/**, /trades/**
+          filters:
+            - name: Retry
+              args:
+                retries: 3
+                statuses: BAD_GATEWAY, SERVICE_UNAVAILABLE, NOT_FOUND
+                methods: GET, POST
+                backoff:
+                  firstBackoff: 10ms
+                  maxBackoff: 50ms
+                  factor: 2
+                  basedOnPreviousValue: true
+
+logging:
+  level:
+    org.springframework.cloud.gateway: INFO

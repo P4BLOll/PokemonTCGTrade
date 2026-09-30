@@ -1,0 +1,11 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: login
+
+  data:
+    mongodb:
+      auto-index-creation: true
+      uri: "mongodb+srv://pablosousa386_db_user:25834864@cluster0.pm3txdf.mongodb.net/pokemon_auth?retryWrites=true&w=majority"
