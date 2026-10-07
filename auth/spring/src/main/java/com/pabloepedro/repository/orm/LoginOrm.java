@@ -6,6 +6,7 @@ import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.util.List;
 
+// Documento gravado na coleção 'login' do MongoDB
 @Document(collection = "login")
 public record LoginOrm(
         @Id String id,

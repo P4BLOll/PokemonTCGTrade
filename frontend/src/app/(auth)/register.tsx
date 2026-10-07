@@ -7,265 +7,389 @@ import {
   StyleSheet,
   ActivityIndicator,
   ScrollView,
+  KeyboardAvoidingView,
   Platform,
 } from "react-native";
 import { router } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
-import { DesignTokens } from "@/constants/Tokens";
+import { DesignTokens, glowText } from "@/constants/Tokens";
 import { useAuth } from "@/context/AuthContext";
+import { AeroIcon } from "@/components/AeroIcon";
+import { api } from "@/services/api";
 
+// Tela de Registro: cadastra um novo oficial ou administrador no banco de dados MongoDB via API de Auth
 export default function RegisterScreen() {
-  const { signUp, signIn } = useAuth();
+  const auth = useAuth();
+  const [selectedRole, setSelectedRole] = useState<"USER" | "ADMIN">("USER");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
+  const signUp = auth?.signUp || (async (u: string, p: string, r?: string[]) => {
+    try {
+      await api.post("/login/user/cadastrar", { username: u, password: p, roles: r || ["USER"] });
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, message: err.response?.data?.message || err.message || "Falha ao registrar oficial de frota" };
+    }
+  });
+
+  const signIn = auth?.signIn || (async (u: string, p: string) => {
+    try {
+      const res = await api.post("/auth/service/auth", { username: u, password: p });
+      return { success: !!res.data?.token };
+    } catch (err: any) {
+      return { success: false, message: err.response?.data?.message || err.message || "Falha no login" };
+    }
+  });
+
   const handleRegister = async () => {
     setErrorMsg(null);
     if (!username.trim() || !password.trim()) {
-      setErrorMsg("Por favor preencha todos os campos.");
+      setErrorMsg("[!] ERRO: TODOS OS CAMPOS DE REGISTRO SÃO OBRIGATÓRIOS.");
       return;
     }
 
     if (password !== confirmPassword) {
-      setErrorMsg("A confirmação de senha não confere.");
+      setErrorMsg("[!] ERRO: A CONFIRMAÇÃO DO CÓDIGO CIPHER NÃO COINCIDE.");
       return;
     }
 
     if (password.length < 6) {
-      setErrorMsg("A senha deve possuir no mínimo 6 caracteres.");
+      setErrorMsg("[!] ERRO: O CÓDIGO CIPHER DEVE CONTER NO MÍNIMO 6 CARACTERES.");
       return;
     }
 
     setLoading(true);
-    const res = await signUp(username, password);
+    const assignedRoles = selectedRole === "ADMIN" ? ["ADMIN", "USER"] : ["USER"];
+    const res = await signUp(username.trim().toLowerCase(), password, assignedRoles);
 
     if (res.success) {
-      // Auto login
-      await signIn(username, password);
+      await signIn(username.trim().toLowerCase(), password);
       router.replace("/(tabs)");
     } else {
       setLoading(false);
-      setErrorMsg(res.message || "Não foi possível criar o usuário.");
+      setErrorMsg(res.message || "[!] FALHA NA EMISSÃO: NÃO FOI POSSÍVEL REGISTRAR OFICIAL NO AUTH-SERVICE.");
     }
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
-      <View style={styles.cardWrapper}>
-        <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={20} color={DesignTokens.colors.textPrimary} />
-          <Text style={styles.backBtnText}>Voltar ao Login</Text>
-        </TouchableOpacity>
-
-        <View style={styles.headerSection}>
-          <Text style={styles.title}>NOVO TREINADOR</Text>
-          <Text style={styles.subtitle}>Crie sua conta para colecionar e negociar cartas TCG</Text>
-        </View>
-
-        <View style={styles.formCard}>
-          {errorMsg ? (
-            <View style={styles.errorBox}>
-              <Ionicons name="alert-circle" size={18} color={DesignTokens.colors.danger} style={{ marginRight: 8 }} />
-              <Text style={styles.errorText}>{errorMsg}</Text>
-            </View>
-          ) : null}
-
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Nome de Treinador (Username)</Text>
-            <View style={styles.inputWrapper}>
-              <Ionicons name="person-outline" size={18} color={DesignTokens.colors.textMuted} style={styles.inputIcon} />
-              <TextInput
-                style={styles.input}
-                placeholder="ex: red, blue, cynthia"
-                placeholderTextColor={DesignTokens.colors.textMuted}
-                value={username}
-                onChangeText={setUsername}
-                autoCapitalize="none"
-              />
-            </View>
+    <KeyboardAvoidingView
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      style={styles.keyboardRoot}
+    >
+      <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
+        <View style={styles.terminalCard}>
+          {/* TOP STATUS BAR */}
+          <View style={styles.terminalTopBar}>
+            <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
+              <AeroIcon name="arrow-back" size={14} color={DesignTokens.colors.amber} />
+              <Text style={styles.backBtnText}>RETORNAR AO TERMINAL</Text>
+            </TouchableOpacity>
+            <Text style={styles.versionTag}>CLEARANCE_AUTH // NEW_RECRUIT</Text>
           </View>
 
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Senha de Acesso</Text>
-            <View style={styles.inputWrapper}>
-              <Ionicons name="lock-closed-outline" size={18} color={DesignTokens.colors.textMuted} style={styles.inputIcon} />
-              <TextInput
-                style={styles.input}
-                placeholder="Mínimo 6 caracteres"
-                placeholderTextColor={DesignTokens.colors.textMuted}
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry
-              />
+          {/* MAIN BODY */}
+          <View style={styles.formBody}>
+            <View style={styles.headerBlock}>
+              <Text style={[styles.brandTitle, glowText("title")]}>[ EMISSÃO DE CREDENCIAL ]</Text>
+              <Text style={styles.brandSubtitle}>
+                REGISTRO DE NOVO PILOTO OU COMANDANTE NO SISTEMA CENTRAL
+              </Text>
             </View>
-          </View>
 
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Confirmar Senha</Text>
-            <View style={styles.inputWrapper}>
-              <Ionicons name="shield-checkmark-outline" size={18} color={DesignTokens.colors.textMuted} style={styles.inputIcon} />
-              <TextInput
-                style={styles.input}
-                placeholder="Repita sua senha"
-                placeholderTextColor={DesignTokens.colors.textMuted}
-                value={confirmPassword}
-                onChangeText={setConfirmPassword}
-                secureTextEntry
-              />
+            {/* SELEÇÃO DE PATENTE / ROLE */}
+            <View style={styles.roleGroup}>
+              <Text style={styles.inputLabel}>SELECIONAR PATENTE / NÍVEL DE ACESSO:</Text>
+              <View style={styles.roleRow}>
+                <TouchableOpacity
+                  style={[
+                    styles.roleBtn,
+                    selectedRole === "USER" && styles.roleBtnActive,
+                  ]}
+                  onPress={() => setSelectedRole("USER")}
+                >
+                  <Text
+                    style={[
+                      styles.roleBtnText,
+                      selectedRole === "USER" && styles.roleBtnTextActive,
+                    ]}
+                  >
+                    [ OFICIAL // USER ]
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[
+                    styles.roleBtn,
+                    selectedRole === "ADMIN" && styles.roleBtnActive,
+                  ]}
+                  onPress={() => setSelectedRole("ADMIN")}
+                >
+                  <Text
+                    style={[
+                      styles.roleBtnText,
+                      selectedRole === "ADMIN" && styles.roleBtnTextActive,
+                    ]}
+                  >
+                    [ COMANDANTE // ADMIN ]
+                  </Text>
+                </TouchableOpacity>
+              </View>
+              <Text style={styles.roleDesc}>
+                {selectedRole === "ADMIN"
+                  ? "PATENTE ADMINISTRATIVA: Concede permissão para visualizar relatórios executivos, auditoria e gerenciar a frota (adicionar e remover naves)."
+                  : "PATENTE OPERACIONAL: Concede permissão para visualizar docas, requisitar naves e conduzir missões de despacho."}
+              </Text>
             </View>
-          </View>
 
-          <TouchableOpacity style={styles.registerBtn} onPress={handleRegister} disabled={loading}>
-            {loading ? (
-              <ActivityIndicator color="#FFFFFF" />
-            ) : (
-              <>
-                <Ionicons name="checkmark-circle-outline" size={18} color="#FFFFFF" style={{ marginRight: 6 }} />
-                <Text style={styles.registerBtnText}>CRIAR CONTA DE TREINADOR</Text>
-              </>
-            )}
-          </TouchableOpacity>
+            {errorMsg ? (
+              <View style={styles.errorBox}>
+                <AeroIcon name="warning" size={16} color={DesignTokens.colors.alert} style={{ marginRight: 8 }} />
+                <Text style={styles.errorText}>{errorMsg}</Text>
+              </View>
+            ) : null}
 
-          <View style={styles.footerRow}>
-            <Text style={styles.footerText}>Já possui uma conta? </Text>
-            <TouchableOpacity onPress={() => router.back()}>
-              <Text style={styles.footerLink}>Fazer Login</Text>
+            {/* INPUT: CALLSIGN */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>DEFINIR CALLSIGN DO OFICIAL (USERNAME):</Text>
+              <View style={styles.inputWrapper}>
+                <Text style={styles.inputPrompt}>new_id:&gt;</Text>
+                <TextInput
+                  style={styles.textInput}
+                  placeholder="ex: vance, silva, nova, cmd_alex"
+                  placeholderTextColor={DesignTokens.colors.textMuted}
+                  value={username}
+                  onChangeText={setUsername}
+                  autoCapitalize="none"
+                />
+              </View>
+            </View>
+
+            {/* INPUT: CIPHER */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>CÓDIGO DE ACESSO CIPHER (MÍN. 6 DÍGITOS):</Text>
+              <View style={styles.inputWrapper}>
+                <Text style={styles.inputPrompt}>cipher:&gt;</Text>
+                <TextInput
+                  style={styles.textInput}
+                  placeholder="••••••••"
+                  placeholderTextColor={DesignTokens.colors.textMuted}
+                  value={password}
+                  onChangeText={setPassword}
+                  secureTextEntry
+                />
+              </View>
+            </View>
+
+            {/* INPUT: CONFIRM CIPHER */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>CONFIRMAR CÓDIGO CIPHER:</Text>
+              <View style={styles.inputWrapper}>
+                <Text style={styles.inputPrompt}>verify:&gt;</Text>
+                <TextInput
+                  style={styles.textInput}
+                  placeholder="••••••••"
+                  placeholderTextColor={DesignTokens.colors.textMuted}
+                  value={confirmPassword}
+                  onChangeText={setConfirmPassword}
+                  secureTextEntry
+                />
+              </View>
+            </View>
+
+            {/* SUBMIT BUTTON */}
+            <TouchableOpacity
+              style={styles.submitButton}
+              onPress={handleRegister}
+              disabled={loading}
+              activeOpacity={0.85}
+            >
+              {loading ? (
+                <ActivityIndicator size="small" color={DesignTokens.colors.bgDeep} />
+              ) : (
+                <>
+                  <AeroIcon name="shield-checkmark" size={16} color={DesignTokens.colors.bgDeep} />
+                  <Text style={styles.submitButtonText}>
+                    [ EMITIR CREDENCIAL ({selectedRole}) ]
+                  </Text>
+                </>
+              )}
             </TouchableOpacity>
           </View>
         </View>
-      </View>
-    </ScrollView>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
+  keyboardRoot: {
+    flex: 1,
+    backgroundColor: DesignTokens.colors.bgDeep,
+  },
   container: {
     flexGrow: 1,
-    backgroundColor: DesignTokens.colors.bgBase,
+    backgroundColor: DesignTokens.colors.bgDeep,
     justifyContent: "center",
     alignItems: "center",
-    padding: 24,
+    padding: 16,
   },
-  cardWrapper: {
+  terminalCard: {
     width: "100%",
-    maxWidth: 460,
+    maxWidth: 520,
+    backgroundColor: "transparent",
+    borderWidth: 1,
+    borderColor: DesignTokens.colors.amberDim,
+    borderRadius: 0,
+  },
+  terminalTopBar: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    backgroundColor: "transparent",
+    borderBottomWidth: 1,
+    borderBottomColor: DesignTokens.colors.amberDim,
+    borderStyle: "dashed",
+    overflow: "hidden",
+    paddingHorizontal: 14,
+    paddingVertical: 10,
   },
   backBtn: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 20,
-    alignSelf: "flex-start",
     gap: 6,
   },
   backBtnText: {
-    fontSize: 13,
-    fontWeight: "700",
+    fontFamily: DesignTokens.typography.fonts.mono,
+    fontSize: 11,
+    color: DesignTokens.colors.amber,
+  },
+  versionTag: {
+    fontFamily: DesignTokens.typography.fonts.mono,
+    fontSize: 11,
+    color: DesignTokens.colors.textSecondary,
+  },
+  formBody: {
+    padding: 24,
+    gap: 16,
+  },
+  headerBlock: {
+    borderLeftWidth: 1,
+    borderLeftColor: DesignTokens.colors.amber,
+    paddingLeft: 12,
+  },
+  brandTitle: {
+    fontFamily: DesignTokens.typography.fonts.terminal,
+    fontSize: 14,
     color: DesignTokens.colors.textPrimary,
+    letterSpacing: 1,
   },
-  headerSection: {
-    alignItems: "center",
-    marginBottom: 24,
-  },
-  title: {
-    fontFamily: DesignTokens.typography.fontFamilyDisplay,
-    fontSize: 26,
-    fontWeight: "900",
-    color: DesignTokens.colors.textPrimary,
-    letterSpacing: 1.5,
-  },
-  subtitle: {
-    fontFamily: DesignTokens.typography.fontFamily,
-    fontSize: 13,
+  brandSubtitle: {
+    fontFamily: DesignTokens.typography.fonts.mono,
+    fontSize: 11,
     color: DesignTokens.colors.textSecondary,
     marginTop: 4,
-    textAlign: "center",
   },
-  formCard: {
-    backgroundColor: DesignTokens.colors.bgSurface,
-    borderRadius: DesignTokens.radii.card,
+  roleGroup: {
+    gap: 6,
+  },
+  roleRow: {
+    flexDirection: "row",
+    gap: 10,
+  },
+  roleBtn: {
+    flex: 1,
     borderWidth: 1,
-    borderColor: DesignTokens.colors.border,
-    padding: 28,
+    borderColor: DesignTokens.colors.amberDim,
+    paddingVertical: 8,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "transparent",
+  },
+  roleBtnActive: {
+    borderColor: DesignTokens.colors.amber,
+    backgroundColor: "rgba(255, 176, 0, 0.08)",
+  },
+  roleBtnText: {
+    fontFamily: DesignTokens.typography.fonts.mono,
+    fontSize: 11,
+    color: DesignTokens.colors.textSecondary,
+  },
+  roleBtnTextActive: {
+    color: DesignTokens.colors.amber,
+    fontWeight: "bold",
+  },
+  roleDesc: {
+    fontFamily: DesignTokens.typography.fonts.mono,
+    fontSize: 10,
+    color: DesignTokens.colors.textSecondary,
+    lineHeight: 14,
   },
   errorBox: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "rgba(255, 90, 95, 0.12)",
+    backgroundColor: "transparent",
     borderWidth: 1,
-    borderColor: "rgba(255, 90, 95, 0.3)",
-    padding: 12,
-    borderRadius: DesignTokens.radii.button,
-    marginBottom: 16,
+    borderColor: DesignTokens.colors.alert,
+    borderRadius: 0,
+    padding: 10,
   },
   errorText: {
-    color: DesignTokens.colors.danger,
-    fontSize: 13,
-    fontWeight: "600",
+    fontFamily: DesignTokens.typography.fonts.mono,
+    fontSize: 11,
+    color: DesignTokens.colors.alert,
     flex: 1,
   },
   inputGroup: {
-    marginBottom: 16,
+    gap: 6,
   },
-  label: {
-    fontFamily: DesignTokens.typography.fontFamilyDisplay,
-    fontSize: 13,
-    fontWeight: "700",
-    color: DesignTokens.colors.textSecondary,
-    marginBottom: 6,
-    letterSpacing: 0.3,
+  inputLabel: {
+    fontFamily: DesignTokens.typography.fonts.mono,
+    fontSize: 11,
+    color: DesignTokens.colors.textPrimary,
   },
   inputWrapper: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: DesignTokens.colors.bgElevated,
+    backgroundColor: "transparent",
     borderWidth: 1,
-    borderColor: DesignTokens.colors.border,
-    borderRadius: DesignTokens.radii.button,
-    paddingHorizontal: 14,
-    height: 46,
+    borderColor: DesignTokens.colors.amberDim,
+    borderRadius: 0,
+    paddingHorizontal: 10,
+    minHeight: 44,
   },
-  inputIcon: {
-    marginRight: 10,
-  },
-  input: {
-    flex: 1,
-    color: DesignTokens.colors.textPrimary,
-    fontSize: 14,
-  },
-  registerBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: DesignTokens.colors.brandRed,
-    paddingVertical: 14,
-    borderRadius: DesignTokens.radii.button,
-    marginTop: 10,
-  },
-  registerBtnText: {
-    fontFamily: DesignTokens.typography.fontFamilyDisplay,
-    color: "#FFFFFF",
-    fontWeight: "800",
-    fontSize: 15,
-    letterSpacing: 0.5,
-  },
-  footerRow: {
-    flexDirection: "row",
-    justifyContent: "center",
-    marginTop: 22,
-    alignItems: "center",
-  },
-  footerText: {
+  inputPrompt: {
+    fontFamily: DesignTokens.typography.fonts.mono,
+    fontSize: 11,
     color: DesignTokens.colors.textSecondary,
-    fontSize: 13,
+    marginRight: 6,
   },
-  footerLink: {
-    fontFamily: DesignTokens.typography.fontFamilyDisplay,
-    color: DesignTokens.colors.brandRed,
-    fontWeight: "800",
+  textInput: {
+    flex: 1,
+    paddingVertical: 10,
+    fontFamily: DesignTokens.typography.fonts.mono,
+    fontSize: 12,
+    color: DesignTokens.colors.textPrimary,
+  },
+  submitButton: {
+    backgroundColor: DesignTokens.colors.amber,
+    borderWidth: 1,
+    borderColor: DesignTokens.colors.amber,
+    borderRadius: 0,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 12,
+    minHeight: 44,
+    gap: 8,
+    marginTop: 6,
+  },
+  submitButtonText: {
+    fontFamily: DesignTokens.typography.fonts.terminal,
     fontSize: 14,
-    letterSpacing: 0.3,
+    color: DesignTokens.colors.bgDeep,
+    fontWeight: "bold",
   },
 });

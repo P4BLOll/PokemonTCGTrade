@@ -7,9 +7,11 @@ import org.springframework.security.core.userdetails.UserDetails;
 
 import java.util.Collection;
 
+// Adapta nossa entidade 'Login' para a interface 'UserDetails' exigida pelo Spring Security
 public record LogDto(
         Login login
 ) implements UserDetails {
+    // Transforma nossas roles em authorities do Spring (ex: "ROLE_ADMIN", "ROLE_USER")
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return login.roles().stream()
@@ -17,11 +19,13 @@ public record LogDto(
                 .toList();
     }
 
+    // Retorna a senha criptografada do usuário
     @Override
     public String getPassword() {
         return login.password();
     }
 
+    // Retorna o username do usuário
     @Override
     public String getUsername() {
         return login.username();

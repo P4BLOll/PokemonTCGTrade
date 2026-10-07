@@ -1,0 +1,10 @@
+server:
+  port: 8084
+
+spring:
+  application:
+    name: estoque
+logging:
+  level:
+    com.pabloepedro.estoque: INFO
+

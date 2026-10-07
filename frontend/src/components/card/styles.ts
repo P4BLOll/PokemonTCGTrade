@@ -1,0 +1,130 @@
+import { StyleSheet } from "react-native";
+import { DesignTokens } from "@/constants/Tokens";
+
+export const styles = StyleSheet.create({
+  cardContainer: {
+    backgroundColor: "transparent",
+    borderWidth: 1,
+    borderColor: DesignTokens.colors.amberDim,
+    padding: 12,
+    width: "100%",
+  },
+  cardContainerHover: {
+    borderColor: DesignTokens.colors.amber,
+    backgroundColor: "transparent",
+  },
+  headerRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  codeWrap: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    flex: 1,
+  },
+  screwMark: {
+    fontFamily: DesignTokens.typography.fonts.mono,
+    fontSize: 11,
+    color: DesignTokens.colors.amberMid,
+  },
+  cardName: {
+    fontFamily: DesignTokens.typography.fonts.pixel,
+    fontSize: 13,
+    color: DesignTokens.colors.amber,
+    letterSpacing: 0.5,
+  },
+  cardType: {
+    fontFamily: DesignTokens.typography.fonts.mono,
+    fontSize: 11,
+    color: DesignTokens.colors.amberMid,
+  },
+  blueprintContainer: {
+    width: "100%",
+    height: 120,
+    backgroundColor: "transparent",
+    borderWidth: 1,
+    borderColor: DesignTokens.colors.amberDim,
+    alignItems: "center",
+    justifyContent: "center",
+    marginVertical: 6,
+  },
+  telemetryRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: 6,
+  },
+  telemetryLabel: {
+    fontFamily: DesignTokens.typography.fonts.mono,
+    fontSize: 11,
+    color: DesignTokens.colors.amberMid,
+  },
+  telemetryVal: {
+    fontFamily: DesignTokens.typography.fonts.mono,
+    fontSize: 11,
+    color: DesignTokens.colors.amber,
+    fontWeight: "700",
+  },
+  meterTrack: {
+    height: 4,
+    backgroundColor: "transparent",
+    borderWidth: 1,
+    borderColor: DesignTokens.colors.amberDim,
+    marginTop: 4,
+    overflow: "hidden",
+  },
+  meterFill: {
+    height: "100%",
+    backgroundColor: DesignTokens.colors.amber,
+  },
+  footerRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: DesignTokens.colors.amberDim,
+    paddingTop: 8,
+  },
+  rarityPill: {
+    backgroundColor: "transparent",
+    borderWidth: 1,
+    borderColor: DesignTokens.colors.amberDim,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  rarityText: {
+    fontFamily: DesignTokens.typography.fonts.pixel,
+    fontSize: 11,
+    color: DesignTokens.colors.amber,
+    letterSpacing: 0.5,
+  },
+  priceRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  priceText: {
+    fontFamily: DesignTokens.typography.fonts.mono,
+    fontSize: 11,
+    color: DesignTokens.colors.amber,
+    fontWeight: "700",
+  },
+  dispatchBtn: {
+    marginTop: 8,
+    backgroundColor: DesignTokens.colors.amber,
+    paddingVertical: 6,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+  },
+  dispatchBtnText: {
+    fontFamily: DesignTokens.typography.fonts.pixel,
+    fontSize: 11,
+    color: DesignTokens.colors.bgDeep,
+    fontWeight: "bold",
+  },
+});

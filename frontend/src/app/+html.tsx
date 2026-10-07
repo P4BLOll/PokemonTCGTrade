@@ -1,10 +1,12 @@
 import { ScrollViewStyleReset } from 'expo-router/html';
 import { type PropsWithChildren } from 'react';
+import { CSS_DESIGN_TOKENS } from '@/constants/Tokens';
 
 /**
- * Este componente configura o HTML raiz para a exportação web estática e de desenvolvimento.
- * Injeta preconnects e as folhas de estilo do Google Fonts (Rajdhani, Inter, JetBrains Mono)
- * diretamente no <head> da página inicial para carregamento instantâneo.
+ * AERO-OS // MONOCHROME AMBER KERNEL TERMINAL
+ * Root HTML configuration para Web / Desktop.
+ * Injeta preconnects, Google Fonts (VT323 terminal bitmap, JetBrains Mono telemetria)
+ * e o subsistema visual de monitor CRT Âmbar com scanlines, flicker catódico e alto contraste WCAG AA.
  */
 export default function Root({ children }: PropsWithChildren) {
   return (
@@ -13,31 +15,26 @@ export default function Root({ children }: PropsWithChildren) {
         <meta charSet="utf-8" />
         <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
         <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
-        <meta name="theme-color" content="#0E0F12" />
+        <meta name="theme-color" content="#050200" />
+        <title>AERO-OS // AMBER KERNEL TERMINAL v5.0</title>
 
-        {/* Preconnect para acelerar o download das fontes */}
+        {/* Preconnect para acelerar o download das fontes de terminal */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
 
-        {/* Google Fonts: Rajdhani (Headings gamer/TCG), Inter (UI/Textos) e JetBrains Mono (IDs técnicos) */}
+        {/* Fontes Monoespaçadas e Bitmap CRT com display=swap */}
         <link
-          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&family=Rajdhani:wght@500;600;700&display=swap"
+          href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&family=VT323&display=swap"
           rel="stylesheet"
         />
 
-        {/* Reseta estilos do ScrollView nativo do React Native Web */}
+        {/* Reseta estilos do ScrollView do React Native Web */}
         <ScrollViewStyleReset />
 
-        {/* Fundo escuro pré-carregado para evitar flash branco */}
+        {/* Injeção global de tokens CSS, Scanlines e Flicker do Tubo CRT */}
         <style
           dangerouslySetInnerHTML={{
-            __html: `
-              body {
-                background-color: #0E0F12;
-                color: #F5F6F8;
-                font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-              }
-            `,
+            __html: CSS_DESIGN_TOKENS,
           }}
         />
       </head>

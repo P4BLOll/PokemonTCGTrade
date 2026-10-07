@@ -1,217 +1,424 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Platform } from "react-native";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  ScrollView,
+  useWindowDimensions,
+  ActivityIndicator,
+} from "react-native";
 import { router } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
-import { DesignTokens } from "@/constants/Tokens";
-import { Header } from "@/components/Header";
+import { DesignTokens, glowText } from "@/constants/Tokens";
+import { Header } from "@/components/header";
 import { useAuth } from "@/context/AuthContext";
-import { API_BASE_URL, binderService, tradeService, cardService } from "@/services/api";
+import { AeroIcon } from "@/components/AeroIcon";
+import { dockService, dispatchService, relatorioService, estoqueService } from "@/services/api";
+import { ORBITAL_SECTORS } from "@/services/hangarData";
 
-export default function ProfileScreen() {
-  const { user, roles, signOut } = useAuth();
-  const [collectionCount, setCollectionCount] = useState(0);
-  const [tradesCount, setTradesCount] = useState(0);
-  const [totalValue, setTotalValue] = useState(0);
+// Tela de Relatórios e Telemetria: Acesso exclusivo para Administradores (ROLE_ADMIN)
+export default function TelemetryProfileScreen() {
+  const { user, roles, isAdmin, signOut } = useAuth();
+  const { width } = useWindowDimensions();
+  const isDesktop = width >= DesignTokens.breakpoints.desktop;
 
+  const [dockCount, setDockCount] = useState(8);
+  const [activeMissionsCount, setActiveMissionsCount] = useState(3);
+  const [galacticCredits, setGalacticCredits] = useState(64800);
+  const [executiveReport, setExecutiveReport] = useState<any>(null);
+  const [fuelReport, setFuelReport] = useState<any>(null);
+  const [auditEvents, setAuditEvents] = useState<any[]>([]);
+  const [clusterHealth, setClusterHealth] = useState<any>(null);
+  const [calibrateLoading, setCalibrateLoading] = useState(false);
+  const [systemAlert, setSystemAlert] = useState<string | null>(null);
+
+  // Carrega os relatórios do microsserviço de Relatórios (:8085) se o usuário for ADMIN
   useEffect(() => {
-    if (!user) return;
+    if (!user || !isAdmin) return;
+
     Promise.all([
-      binderService.getBinder(user).catch(() => ({ cards: [] })),
-      tradeService.getMyTrades(user).catch(() => []),
-      cardService.getCatalog().catch(() => []),
-    ]).then(([binder, trades, catalog]) => {
-      const cards = binder.cards || [];
-      setCollectionCount(cards.length);
-      setTradesCount(trades.length);
-
-      const catalogMap: Record<string, number> = {};
-      catalog.forEach((c) => {
-        catalogMap[c.id] = c.marketPrice || 150.0;
-      });
-
-      const val = cards.reduce((acc, c) => acc + (catalogMap[c.cardId] || 150.0), 0);
-      setTotalValue(val);
+      relatorioService.getExecutiveReport().catch(() => null),
+      relatorioService.getClusterHealth().catch(() => null),
+      relatorioService.getFuelReport().catch(() => null),
+      relatorioService.getAuditTrail().catch(() => []),
+      estoqueService.getMetricas().catch(() => null),
+      dockService.getDock(user).catch(() => ({ id: "", officerUsername: user, assets: [], ships: [] })),
+      dispatchService.getMyOrders(user).catch(() => []),
+    ]).then(([execReport, cluster, fuel, audit, estoqueMetrics, dockData, dispatches]) => {
+      if (execReport) {
+        setExecutiveReport(execReport);
+        if (execReport.totalRevenueGalacticCredits) {
+          setGalacticCredits(execReport.totalRevenueGalacticCredits);
+        }
+      }
+      if (cluster) setClusterHealth(cluster);
+      if (fuel) setFuelReport(fuel);
+      if (Array.isArray(audit)) setAuditEvents(audit);
+      if (estoqueMetrics?.totalShipsInHangar) {
+        setDockCount(estoqueMetrics.totalShipsInHangar);
+      }
+      if (dispatches && dispatches.length > 0) setActiveMissionsCount(dispatches.length);
     });
-  }, [user]);
+  }, [user, isAdmin]);
+
+  const handleCalibrateCores = () => {
+    setCalibrateLoading(true);
+    setTimeout(() => {
+      setCalibrateLoading(false);
+      setSystemAlert("[OK] REATORES DE PLASMA RECALIBRADOS: FREQUÊNCIA HARMONIZADA A 1.42 GHz.");
+      setTimeout(() => setSystemAlert(null), 5000);
+    }, 1500);
+  };
 
   const handleSignOut = async () => {
     await signOut();
     router.replace("/(auth)/login");
   };
 
+  // ── SE O USUÁRIO FOR APENAS ROLE_USER: EXIBE TELA DE ACESSO NEGADO / CLEARANCE ──
+  if (!isAdmin) {
+    return (
+      <View style={styles.container}>
+        <Header
+          stationCode="ORBITAL ALPHA-7"
+          activeSector="SETOR DE AUDITORIA // ACESSO RESTRITO"
+          badgeText={`OFICIAL: @${user?.toUpperCase() || "USER"}`}
+        />
+
+        <ScrollView style={styles.scrollArea} contentContainerStyle={styles.deniedScrollContent}>
+          <View style={styles.accessDeniedCard}>
+            <View style={styles.accessDeniedTopBar}>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                <AeroIcon name="warning" size={16} color={DesignTokens.colors.alert} />
+                <Text style={styles.accessDeniedTopTitle}>
+                  [ ! ] PROTOCOLO DE DEFESA // CLEARANCE DEFCON 1
+                </Text>
+              </View>
+              <Text style={styles.accessDeniedStatusTag}>ACESSO RESTRITO</Text>
+            </View>
+
+            <View style={styles.accessDeniedBody}>
+              <View style={styles.accessDeniedBadge}>
+                <Text style={styles.accessDeniedBadgeText}>
+                  PERFIL AUTENTICADO: [ {roles.join(" // ") || "ROLE_USER"} ]
+                </Text>
+              </View>
+
+              <Text style={[styles.accessDeniedHeading, glowText("title")]}>
+                TERMINAL DE RELATÓRIOS &amp; AUDITORIA BLOQUEADO
+              </Text>
+
+              <Text style={styles.accessDeniedParagraph}>
+                O terminal consolidado de Relatórios Executivos, Auditoria Financeira,
+                Consumo de Dobra e Telemetria do Cluster é de visualização confidencial.
+              </Text>
+
+              <Text style={styles.accessDeniedParagraph}>
+                Regra de Segurança do Sistema: Apenas oficiais com patente de
+                <Text style={{ color: DesignTokens.colors.amber, fontWeight: "bold" }}>
+                  {" "}COMANDANTE GERAL (ROLE_ADMIN){" "}
+                </Text>
+                possuem clearance autorizado para acessar e consultar os dados deste microsserviço.
+              </Text>
+
+              <View style={styles.securityBox}>
+                <Text style={styles.securityBoxTitle}>DIRETRIZES ATIVAS DE CONTROLE:</Text>
+                <Text style={styles.securityBoxLine}>
+                  • Gateway Security: .pathMatchers("/relatorios/**").hasAuthority("ROLE_ADMIN")
+                </Text>
+                <Text style={styles.securityBoxLine}>
+                  • Microsserviço Relatório: Porta :8085 [STATUS: FECHADO PARA ROLE_USER]
+                </Text>
+                <Text style={styles.securityBoxLine}>
+                  • Gestão de Frota: Adicionar/Remover naves exclusivo para ROLE_ADMIN
+                </Text>
+              </View>
+
+              <TouchableOpacity style={styles.switchAdminBtn} onPress={handleSignOut} activeOpacity={0.85}>
+                <AeroIcon name="key" size={16} color={DesignTokens.colors.bgDeep} />
+                <Text style={styles.switchAdminBtnText}>
+                  [ ENTRAR COMO ADMINISTRADOR // ROLE_ADMIN ]
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </ScrollView>
+      </View>
+    );
+  }
+
+  // ── SE O USUÁRIO FOR ADMIN: EXIBE O DASHBOARD COMPLETO DE RELATÓRIOS & TELEMETRIA ──
   return (
     <View style={styles.container}>
       <Header
-        title="Perfil do Treinador"
-        subtitle="Estatísticas da conta e status do ecossistema de microsserviços"
-        badgeText={`@${user || "Treinador"}`}
+        stationCode="ORBITAL ALPHA-7"
+        activeSector="RELATÓRIOS & AUDITORIA // ADMIN CLEARANCE"
+        badgeText={`COMANDANTE: @${user?.toUpperCase() || "ADMIN"}`}
       />
 
-      <ScrollView style={styles.mainScrollView} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        {/* ── CARD HERO: IDENTIDADE DO TREINADOR ── */}
-        <View style={styles.trainerHeroCard}>
-          <View style={styles.heroBackgroundPattern} />
+      {/* ALERT NOTIFIER */}
+      {systemAlert && (
+        <View style={styles.alertBanner}>
+          <AeroIcon name="hardware-chip" size={16} color={DesignTokens.colors.amber} />
+          <Text style={styles.alertBannerText}>{systemAlert}</Text>
+        </View>
+      )}
 
-          <View style={styles.heroMainContent}>
-            {/* Avatar Circular com Borda Vermelha */}
-            <View style={styles.avatarWrapper}>
-              <View style={styles.avatarInner}>
-                <Ionicons name="person" size={44} color={DesignTokens.colors.brandRed} />
+      <ScrollView style={styles.scrollArea} contentContainerStyle={styles.scrollContent}>
+        {/* HERO COMMANDER CLEARANCE CARD */}
+        <View style={styles.heroCard}>
+          <View style={styles.heroTopRow}>
+            <View style={styles.callsignBox}>
+              <View style={styles.officerAvatar}>
+                <AeroIcon name="person-circle" size={38} color={DesignTokens.colors.amber} />
               </View>
-              <View style={styles.trainerLevelBadge}>
-                <Ionicons name="shield-checkmark" size={12} color="#FFFFFF" />
-              </View>
-            </View>
-
-            {/* Informações do Treinador */}
-            <View style={styles.trainerInfoSection}>
-              <View style={styles.trainerTitleRow}>
-                <Text style={styles.trainerUsername}>@{user || "Treinador"}</Text>
-                <View style={styles.officialBadge}>
-                  <Text style={styles.officialBadgeText}>Treinador Oficial</Text>
-                </View>
-              </View>
-
-              <Text style={styles.trainerSub}>Membro da Liga Pokémon TCG • Plataforma Microservices</Text>
-
-              {/* Roles Chips */}
-              <View style={styles.rolesRow}>
-                {roles && roles.length > 0 ? (
-                  roles.map((r, i) => (
-                    <View key={i} style={styles.roleChip}>
-                      <Ionicons name="key-outline" size={11} color={DesignTokens.colors.accentGold} style={{ marginRight: 4 }} />
-                      <Text style={styles.roleChipText}>{r}</Text>
-                    </View>
-                  ))
-                ) : (
-                  <View style={styles.roleChip}>
-                    <Text style={styles.roleChipText}>ROLE_TRAINER</Text>
+              <View style={{ marginLeft: 12 }}>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                  <Text style={styles.callsignTitle}>COMANDANTE: @{user?.toUpperCase() || "ADMIN"}</Text>
+                  <View style={styles.clearanceTag}>
+                    <Text style={styles.clearanceTagText}>CLEARANCE NÍVEL 5 // ADMIN</Text>
                   </View>
-                )}
+                </View>
+                <Text style={styles.callsignSubtitle}>
+                  Base Estelar Hangar-07 // Central de Comando & Auditoria Executiva
+                </Text>
               </View>
+            </View>
+
+            {/* CREDITS BALANCE */}
+            <View style={styles.creditsCard}>
+              <Text style={styles.creditsLabel}>RECEITA TOTAL CONSOLIDADA</Text>
+              <Text style={styles.creditsValue}>{galacticCredits.toLocaleString()} CR</Text>
+              <Text style={styles.creditsSub}>Créditos Galácticos Autorizados</Text>
             </View>
           </View>
 
-          {/* Métricas Rápidas do Treinador */}
-          <View style={styles.heroStatsRow}>
-            <View style={styles.heroStatItem}>
-              <Text style={styles.heroStatValue}>{collectionCount}</Text>
-              <Text style={styles.heroStatLabel}>Cartas na Coleção</Text>
+          {/* ROLES & PERMISSIONS ROW */}
+          <View style={styles.rolesRow}>
+            <Text style={styles.rolesLabel}>PERMISSÕES NO SISTEMA:</Text>
+            <View style={styles.rolesList}>
+              {roles && roles.length > 0 ? (
+                roles.map((r, i) => (
+                  <View key={i} style={styles.roleChip}>
+                    <Text style={styles.roleChipText}>[ {r} ]</Text>
+                  </View>
+                ))
+              ) : (
+                <View style={styles.roleChip}>
+                  <Text style={styles.roleChipText}>[ ROLE_ADMIN ]</Text>
+                </View>
+              )}
             </View>
-            <View style={styles.heroStatDivider} />
-            <View style={styles.heroStatItem}>
-              <Text style={[styles.heroStatValue, { color: DesignTokens.colors.success }]}>{tradesCount}</Text>
-              <Text style={styles.heroStatLabel}>Trocas Registradas</Text>
-            </View>
-            <View style={styles.heroStatDivider} />
-            <View style={styles.heroStatItem}>
-              <Text style={[styles.heroStatValue, { color: DesignTokens.colors.accentGold }]}>
-                R$ {totalValue.toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+          </View>
+        </View>
+
+        {/* ── PAINEL DE RELATÓRIOS EXECUTIVOS (MICROSSERVIÇO :8085) ── */}
+        <View style={styles.sectionWrapper}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>[ RELATÓRIO EXECUTIVO GERAL // MICROSSERVIÇO :8085 ]</Text>
+            <Text style={styles.sectionBadge}>EXCLUSIVO ADMIN</Text>
+          </View>
+
+          <View style={styles.reportMetricsGrid}>
+            <View style={styles.reportMetricCard}>
+              <Text style={styles.reportMetricLabel}>DESPACHOS CONCLUÍDOS</Text>
+              <Text style={styles.reportMetricVal}>
+                {executiveReport?.totalDispatches || activeMissionsCount}
               </Text>
-              <Text style={styles.heroStatLabel}>Patrimônio Estimado</Text>
+              <Text style={styles.reportMetricSub}>Missões processadas</Text>
+            </View>
+
+            <View style={styles.reportMetricCard}>
+              <Text style={styles.reportMetricLabel}>DURAÇÃO MÉDIA DE VOO</Text>
+              <Text style={styles.reportMetricVal}>
+                {executiveReport?.averageMissionDurationMinutes || 42} MIN
+              </Text>
+              <Text style={styles.reportMetricSub}>Tempo de rota orbital</Text>
+            </View>
+
+            <View style={styles.reportMetricCard}>
+              <Text style={styles.reportMetricLabel}>CLASSE MAIS UTILIZADA</Text>
+              <Text style={styles.reportMetricVal}>
+                {executiveReport?.mostDispatchedShipClass || "INTERCEPTOR"}
+              </Text>
+              <Text style={styles.reportMetricSub}>Maior frequência de voo</Text>
+            </View>
+
+            <View style={styles.reportMetricCard}>
+              <Text style={styles.reportMetricLabel}>PRONTIDÃO DA FROTA</Text>
+              <Text style={styles.reportMetricVal}>
+                {executiveReport?.fleetReadinessRate || "94.8%"}
+              </Text>
+              <Text style={styles.reportMetricSub}>Naves prontas em doca</Text>
             </View>
           </View>
         </View>
 
-        {/* ── PAINEL DE ARQUITETURA & SAÚDE DOS MICROSSERVIÇOS ── */}
-        <View style={styles.sectionHeader}>
-          <Ionicons name="hardware-chip-outline" size={20} color={DesignTokens.colors.brandRed} style={{ marginRight: 8 }} />
-          <Text style={styles.sectionHeading}>Ecossistema de Microsserviços & Cloud</Text>
+        {/* ── SUBSISTEMAS DA ESTAÇÃO ── */}
+        <View style={styles.sectionWrapper}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>[ SUBSISTEMAS DA ESTAÇÃO // REDE INTEGRADA ]</Text>
+            <Text style={styles.sectionBadge}>6 DE 6 SUBSISTEMAS ATIVOS</Text>
+          </View>
+
+          <View style={styles.microservicesGrid}>
+            <View style={styles.nodeCard}>
+              <View style={styles.nodeHeader}>
+                <View style={styles.nodeLedActive} />
+                <Text style={styles.nodeLedText}>[ONLINE]</Text>
+                <Text style={styles.nodeName}>01 // COMUNICAÇÕES</Text>
+              </View>
+              <Text style={styles.nodeTech}>Canal de Roteamento Primário</Text>
+              <Text style={styles.nodeStatus}>STATUS: ROTEAMENTO ATIVO</Text>
+              <Text style={styles.nodeMetric}>Latência Média: 1.4ms</Text>
+            </View>
+
+            <View style={styles.nodeCard}>
+              <View style={styles.nodeHeader}>
+                <View style={styles.nodeLedActive} />
+                <Text style={styles.nodeLedText}>[ONLINE]</Text>
+                <Text style={styles.nodeName}>02 // CONTROLE DE ACESSO</Text>
+              </View>
+              <Text style={styles.nodeTech}>Segurança & Credenciais JWT</Text>
+              <Text style={styles.nodeStatus}>STATUS: AUTENTICAÇÃO ATIVA</Text>
+              <Text style={styles.nodeMetric}>Roles: USER & ADMIN</Text>
+            </View>
+
+            <View style={styles.nodeCard}>
+              <View style={styles.nodeHeader}>
+                <View style={styles.nodeLedActive} />
+                <Text style={styles.nodeLedText}>[ONLINE]</Text>
+                <Text style={styles.nodeName}>03 // CENTRAL DE DESPACHO</Text>
+              </View>
+              <Text style={styles.nodeTech}>Orquestração de Frota & Missões</Text>
+              <Text style={styles.nodeStatus}>STATUS: LOCK ATÔMICO ATIVO</Text>
+              <Text style={styles.nodeMetric}>Contratos Ativos: {activeMissionsCount}</Text>
+            </View>
+
+            <View style={styles.nodeCard}>
+              <View style={styles.nodeHeader}>
+                <View style={styles.nodeLedActive} />
+                <Text style={styles.nodeLedText}>[ONLINE]</Text>
+                <Text style={styles.nodeName}>04 // BAIAS DO HANGAR</Text>
+              </View>
+              <Text style={styles.nodeTech}>Inventário & Docas de Pouso</Text>
+              <Text style={styles.nodeStatus}>STATUS: MONITORAÇÃO ATIVA</Text>
+              <Text style={styles.nodeMetric}>Naves no Hangar: {dockCount}</Text>
+            </View>
+
+            <View style={styles.nodeCard}>
+              <View style={styles.nodeHeader}>
+                <View style={[styles.nodeLedActive, { backgroundColor: DesignTokens.colors.accentAmber }]} />
+                <Text style={[styles.nodeLedText, { color: DesignTokens.colors.accentAmber }]}>[BUFFER]</Text>
+                <Text style={[styles.nodeName, { color: DesignTokens.colors.accentAmber }]}>
+                  05 // BARRAMENTO DE TELEMETRIA
+                </Text>
+              </View>
+              <Text style={styles.nodeTech}>Transmissão RabbitMQ AMQP</Text>
+              <Text style={styles.nodeStatus}>STATUS: CANAL SINCRONIZADO</Text>
+              <Text style={styles.nodeMetric}>Taxa de Transmissão: 48 pacotes/s</Text>
+            </View>
+
+            <View style={styles.nodeCard}>
+              <View style={styles.nodeHeader}>
+                <View style={styles.nodeLedActive} />
+                <Text style={styles.nodeLedText}>[ONLINE]</Text>
+                <Text style={styles.nodeName}>06 // DIÁRIO DE AUDITORIA</Text>
+              </View>
+              <Text style={styles.nodeTech}>Histórico de Voo & Telemetria</Text>
+              <Text style={styles.nodeStatus}>STATUS: REGISTRANDO FLUXO</Text>
+              <Text style={styles.nodeMetric}>Integridade: 99.98%</Text>
+            </View>
+          </View>
         </View>
 
-        <View style={styles.servicesGrid}>
-          {/* Serviço 1: API Gateway */}
-          <View style={styles.serviceCard}>
-            <View style={styles.serviceCardHeader}>
-              <View style={styles.serviceIconCircle}>
-                <Ionicons name="globe-outline" size={20} color={DesignTokens.colors.brandRed} />
+        {/* ── OSCILOSCÓPIO DO REATOR E ROTAS HIPERESPACIAIS ── */}
+        <View style={styles.telemetrySplitRow}>
+          <View style={styles.oscilloscopePanel}>
+            <View style={styles.panelHeaderRow}>
+              <Text style={styles.panelTitle}>[ OSCILOSCÓPIO DO REATOR PRINCIPAL ]</Text>
+              <Text style={styles.panelLiveDot}>● 98.4% STABLE</Text>
+            </View>
+
+            <View style={styles.waveDisplay}>
+              <Text style={styles.waveLine}>{"▲  .  .  /\\  .  .  /\\  .  .  /\\  .  .  ▲"}</Text>
+              <Text style={styles.waveLine}>{"│  . /\\/  \\  . /\\/  \\  . /\\/  \\  . │"}</Text>
+              <Text style={styles.waveLine}>{"├───/──────\\──/──────\\──/──────\\───┤"}</Text>
+              <Text style={styles.waveLine}>{"│  /        \\/        \\/        \\  │"}</Text>
+              <Text style={styles.waveLine}>{"▼ ─          ─          ─          ▼"}</Text>
+              <View style={styles.waveOverlayGrid} />
+            </View>
+
+            <View style={styles.metricsTriple}>
+              <View style={styles.metricItem}>
+                <Text style={styles.metricLabel}>OUTPUT TÉRMICO</Text>
+                <Text style={styles.metricVal}>4.21 GW</Text>
               </View>
-              <View style={styles.serviceStatusPill}>
-                <View style={styles.pulsingGreenDot} />
-                <Text style={styles.serviceStatusText}>ONLINE</Text>
+              <View style={styles.metricItem}>
+                <Text style={styles.metricLabel}>FLUXO DE PLASMA</Text>
+                <Text style={styles.metricVal}>98.2 kg/s</Text>
+              </View>
+              <View style={styles.metricItem}>
+                <Text style={styles.metricLabel}>DILATAÇÃO TEMPO</Text>
+                <Text style={styles.metricVal}>0.0004 ns</Text>
               </View>
             </View>
-            <Text style={styles.serviceName}>API Gateway</Text>
-            <Text style={styles.serviceAddress}>Porta :8080 • {API_BASE_URL}</Text>
-            <Text style={styles.serviceDesc}>
-              Spring Cloud Gateway com roteamento reativo WebFlux, tratamento de CORS unificado e redirecionamento de microsserviços.
-            </Text>
           </View>
 
-          {/* Serviço 2: Auth Service */}
-          <View style={styles.serviceCard}>
-            <View style={styles.serviceCardHeader}>
-              <View style={styles.serviceIconCircle}>
-                <Ionicons name="lock-closed-outline" size={20} color={DesignTokens.colors.brandRed} />
-              </View>
-              <View style={styles.serviceStatusPill}>
-                <View style={styles.pulsingGreenDot} />
-                <Text style={styles.serviceStatusText}>ONLINE</Text>
-              </View>
+          <View style={styles.hyperlanesPanel}>
+            <View style={styles.panelHeaderRow}>
+              <Text style={styles.panelTitle}>[ ROTAS HIPERESPACIAIS CONECTADAS ]</Text>
+              <Text style={styles.panelLiveDot}>4 VETORES</Text>
             </View>
-            <Text style={styles.serviceName}>Auth Service</Text>
-            <Text style={styles.serviceAddress}>Porta :8081 • Spring Security + JWT</Text>
-            <Text style={styles.serviceDesc}>
-              Gerenciamento de contas de treinadores com criptografia BCrypt, geração de tokens JWT e persistência em MongoDB Atlas.
-            </Text>
-          </View>
 
-          {/* Serviço 3: Trade Service */}
-          <View style={styles.serviceCard}>
-            <View style={styles.serviceCardHeader}>
-              <View style={styles.serviceIconCircle}>
-                <Ionicons name="swap-horizontal" size={20} color={DesignTokens.colors.brandRed} />
-              </View>
-              <View style={styles.serviceStatusPill}>
-                <View style={styles.pulsingGreenDot} />
-                <Text style={styles.serviceStatusText}>ONLINE</Text>
-              </View>
+            <View style={styles.sectorsList}>
+              {ORBITAL_SECTORS.map((s: any) => (
+                <View key={s.id} style={styles.sectorRow}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.sectorName}>{s.name}</Text>
+                    <Text style={styles.sectorCoordinates}>{s.coordinates}</Text>
+                  </View>
+                  <View style={{ alignItems: "flex-end" }}>
+                    <Text
+                      style={[
+                        styles.sectorRisk,
+                        s.riskLevel === "EXTREME"
+                          ? { color: DesignTokens.colors.alert }
+                          : s.riskLevel === "MODERATE"
+                          ? { color: DesignTokens.colors.amber }
+                          : { color: DesignTokens.colors.amberMid },
+                      ]}
+                    >
+                      {s.riskLevel}
+                    </Text>
+                    <Text style={styles.sectorVessels}>{s.activeVessels} naves ativas</Text>
+                  </View>
+                </View>
+              ))}
             </View>
-            <Text style={styles.serviceName}>Trade Service</Text>
-            <Text style={styles.serviceAddress}>Porta :8082 • ACID Transactions</Text>
-            <Text style={styles.serviceDesc}>
-              Catálogo oficial de cartas TCG, gestão de binders, bloqueio atômico contra concorrência e liquidação de trocas.
-            </Text>
-          </View>
-
-          {/* Serviço 4: Mensageria RabbitMQ */}
-          <View style={styles.serviceCard}>
-            <View style={styles.serviceCardHeader}>
-              <View style={styles.serviceIconCircle}>
-                <Ionicons name="cube-outline" size={20} color={DesignTokens.colors.brandRed} />
-              </View>
-              <View style={styles.serviceStatusPill}>
-                <View style={styles.pulsingGreenDot} />
-                <Text style={styles.serviceStatusText}>CONECTADO</Text>
-              </View>
-            </View>
-            <Text style={styles.serviceName}>RabbitMQ / CloudAMQP</Text>
-            <Text style={styles.serviceAddress}>Porta :5671 • AMQPS / SSL Seguro</Text>
-            <Text style={styles.serviceDesc}>
-              Broker assíncrono gerenciado na nuvem com filas duráveis, Dead Letter Queue (DLQ) e liquidação assíncrona desacoplada.
-            </Text>
           </View>
         </View>
 
-        {/* ── ATALHOS RÁPIDOS & ENCERRAMENTO DE SESSÃO ── */}
-        <View style={styles.actionsCard}>
-          <Text style={styles.actionsCardTitle}>Ações Rápidas da Conta</Text>
+        {/* ── BOTÕES DE COMANDO E LOGOUT ── */}
+        <View style={styles.protocolButtonsRow}>
+          <TouchableOpacity
+            style={styles.calibrateButton}
+            onPress={handleCalibrateCores}
+            disabled={calibrateLoading}
+          >
+            {calibrateLoading ? (
+              <ActivityIndicator size="small" color={DesignTokens.colors.bgDeep} />
+            ) : (
+              <AeroIcon name="pulse" size={16} color={DesignTokens.colors.bgDeep} />
+            )}
+            <Text style={styles.calibrateButtonText}>
+              {calibrateLoading ? "CALIBRANDO..." : "CALIBRAR REATORES DE FUSÃO"}
+            </Text>
+          </TouchableOpacity>
 
-          <View style={styles.actionButtonsRow}>
-            <TouchableOpacity style={styles.actionLinkBtn} onPress={() => router.push("/(tabs)/binder")}>
-              <Ionicons name="albums-outline" size={18} color={DesignTokens.colors.textPrimary} style={{ marginRight: 8 }} />
-              <Text style={styles.actionLinkText}>Acessar Minha Coleção</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.actionLinkBtn} onPress={() => router.push("/(tabs)/trades")}>
-              <Ionicons name="swap-horizontal" size={18} color={DesignTokens.colors.textPrimary} style={{ marginRight: 8 }} />
-              <Text style={styles.actionLinkText}>Ver Mural de Trocas</Text>
-            </TouchableOpacity>
-          </View>
-
-          <TouchableOpacity style={styles.logoutBtn} onPress={handleSignOut}>
-            <Ionicons name="log-out-outline" size={18} color="#FFFFFF" style={{ marginRight: 8 }} />
-            <Text style={styles.logoutBtnText}>ENCERRAR SESSÃO</Text>
+          <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>
+            <AeroIcon name="power" size={16} color={DesignTokens.colors.alert} />
+            <Text style={styles.signOutButtonText}>ENCERRAR SESSÃO DE COMANDO</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -222,299 +429,479 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: DesignTokens.colors.bgBase,
+    backgroundColor: DesignTokens.colors.bgDeep,
   },
-  mainScrollView: {
+  scrollArea: {
     flex: 1,
   },
   scrollContent: {
-    padding: 24,
-    maxWidth: 1200,
-    width: "100%",
-    alignSelf: "center",
-  },
-
-  /* Card Hero do Treinador */
-  trainerHeroCard: {
-    backgroundColor: DesignTokens.colors.bgSurface,
-    borderRadius: DesignTokens.radii.card,
-    borderWidth: 1,
-    borderColor: DesignTokens.colors.border,
-    overflow: "hidden",
-    marginBottom: 28,
-  },
-  heroBackgroundPattern: {
-    height: 80,
-    backgroundColor: DesignTokens.colors.bgElevated,
-    borderBottomWidth: 1,
-    borderBottomColor: DesignTokens.colors.border,
-  },
-  heroMainContent: {
-    paddingHorizontal: 24,
-    paddingBottom: 20,
-    marginTop: -40,
-    flexDirection: "row",
-    flexWrap: "wrap",
-    alignItems: "flex-end",
+    padding: 16,
+    paddingBottom: 90,
     gap: 20,
   },
-  avatarWrapper: {
-    position: "relative",
-  },
-  avatarInner: {
-    width: 88,
-    height: 88,
-    borderRadius: 44,
-    backgroundColor: DesignTokens.colors.bgSurface,
-    borderWidth: 3,
-    borderColor: DesignTokens.colors.brandRed,
+  deniedScrollContent: {
+    padding: 20,
+    flexGrow: 1,
     justifyContent: "center",
     alignItems: "center",
-    ...(Platform.OS === "web" ? { boxShadow: "0 4px 16px rgba(238, 21, 21, 0.3)" } : {}),
-  } as any,
-  trainerLevelBadge: {
-    position: "absolute",
-    bottom: 2,
-    right: 2,
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: DesignTokens.colors.brandRed,
-    justifyContent: "center",
-    alignItems: "center",
-    borderWidth: 2,
-    borderColor: DesignTokens.colors.bgSurface,
   },
-  trainerInfoSection: {
-    flex: 1,
-    minWidth: 260,
-  },
-  trainerTitleRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    flexWrap: "wrap",
-  },
-  trainerUsername: {
-    fontFamily: DesignTokens.typography.fontFamilyDisplay,
-    fontSize: 28,
-    fontWeight: "900",
-    color: DesignTokens.colors.textPrimary,
-    letterSpacing: 0.5,
-  },
-  officialBadge: {
-    backgroundColor: DesignTokens.colors.brandRedSubtle,
+  accessDeniedCard: {
+    width: "100%",
+    maxWidth: 580,
     borderWidth: 1,
-    borderColor: DesignTokens.colors.brandRed,
-    borderRadius: DesignTokens.radii.chip,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
+    borderColor: DesignTokens.colors.alert,
+    backgroundColor: "transparent",
   },
-  officialBadgeText: {
-    fontFamily: DesignTokens.typography.fontFamilyDisplay,
-    fontSize: 12,
-    fontWeight: "800",
-    color: DesignTokens.colors.brandRed,
-    letterSpacing: 0.5,
-  },
-  trainerSub: {
-    fontFamily: DesignTokens.typography.fontFamily,
-    fontSize: 13,
-    color: DesignTokens.colors.textSecondary,
-    marginTop: 4,
-  },
-  rolesRow: {
-    flexDirection: "row",
-    gap: 8,
-    marginTop: 10,
-  },
-  roleChip: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: DesignTokens.colors.bgElevated,
-    borderWidth: 1,
-    borderColor: DesignTokens.colors.border,
-    borderRadius: DesignTokens.radii.chip,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-  },
-  roleChipText: {
-    fontFamily: DesignTokens.typography.fontFamilyDisplay,
-    fontSize: 12,
-    fontWeight: "700",
-    color: DesignTokens.colors.textPrimary,
-    letterSpacing: 0.3,
-  },
-
-  heroStatsRow: {
-    flexDirection: "row",
-    backgroundColor: DesignTokens.colors.bgElevated,
-    borderTopWidth: 1,
-    borderTopColor: DesignTokens.colors.border,
-    paddingVertical: 14,
-    paddingHorizontal: 24,
-  },
-  heroStatItem: {
-    flex: 1,
-    alignItems: "center",
-  },
-  heroStatValue: {
-    fontFamily: DesignTokens.typography.fontFamilyDisplay,
-    fontSize: 24,
-    fontWeight: "900",
-    color: DesignTokens.colors.textPrimary,
-    letterSpacing: 0.5,
-  },
-  heroStatLabel: {
-    fontFamily: DesignTokens.typography.fontFamilyDisplay,
-    fontSize: 12,
-    fontWeight: "600",
-    color: DesignTokens.colors.textSecondary,
-    letterSpacing: 0.3,
-    marginTop: 2,
-  },
-  heroStatDivider: {
-    width: 1,
-    backgroundColor: DesignTokens.colors.border,
-    marginVertical: 4,
-  },
-
-  /* Seção de Microsserviços */
-  sectionHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 16,
-  },
-  sectionHeading: {
-    fontFamily: DesignTokens.typography.fontFamilyDisplay,
-    fontSize: 19,
-    fontWeight: "800",
-    color: DesignTokens.colors.textPrimary,
-    letterSpacing: 0.5,
-  },
-  servicesGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 16,
-    marginBottom: 28,
-  },
-  serviceCard: {
-    flex: 1,
-    minWidth: 260,
-    backgroundColor: DesignTokens.colors.bgSurface,
-    borderRadius: DesignTokens.radii.card,
-    borderWidth: 1,
-    borderColor: DesignTokens.colors.border,
-    padding: 18,
-  },
-  serviceCardHeader: {
+  accessDeniedTopBar: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: DesignTokens.colors.alert,
+    borderStyle: "dashed",
+    overflow: "hidden",
   },
-  serviceIconCircle: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: DesignTokens.colors.bgElevated,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  serviceStatusPill: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "rgba(46, 204, 113, 0.12)",
-    borderWidth: 1,
-    borderColor: "rgba(46, 204, 113, 0.3)",
-    borderRadius: DesignTokens.radii.chip,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    gap: 5,
-  },
-  pulsingGreenDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: DesignTokens.colors.success,
-  },
-  serviceStatusText: {
-    fontFamily: DesignTokens.typography.fontFamilyDisplay,
-    fontSize: 11,
-    fontWeight: "800",
-    color: DesignTokens.colors.success,
+  accessDeniedTopTitle: {
+    fontFamily: DesignTokens.typography.fonts.terminal,
+    fontSize: 13,
+    color: DesignTokens.colors.alert,
     letterSpacing: 0.5,
   },
-  serviceName: {
-    fontFamily: DesignTokens.typography.fontFamilyDisplay,
-    fontSize: 16,
-    fontWeight: "800",
-    color: DesignTokens.colors.textPrimary,
-    letterSpacing: 0.3,
+  accessDeniedStatusTag: {
+    fontFamily: DesignTokens.typography.fonts.mono,
+    fontSize: 10,
+    color: DesignTokens.colors.alert,
+    borderWidth: 1,
+    borderColor: DesignTokens.colors.alert,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
   },
-  serviceAddress: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: DesignTokens.colors.brandRed,
-    marginTop: 2,
-    fontFamily: DesignTokens.typography.fontFamilyMono,
+  accessDeniedBody: {
+    padding: 24,
+    gap: 14,
   },
-  serviceDesc: {
-    fontSize: 12,
+  accessDeniedBadge: {
+    borderWidth: 1,
+    borderColor: DesignTokens.colors.amberDim,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    alignSelf: "flex-start",
+  },
+  accessDeniedBadgeText: {
+    fontFamily: DesignTokens.typography.fonts.mono,
+    fontSize: 11,
     color: DesignTokens.colors.textSecondary,
-    marginTop: 8,
+  },
+  accessDeniedHeading: {
+    fontFamily: DesignTokens.typography.fonts.terminal,
+    fontSize: 16,
+    color: DesignTokens.colors.alert,
+    letterSpacing: 0.5,
+    marginTop: 4,
+  },
+  accessDeniedParagraph: {
+    fontFamily: DesignTokens.typography.fonts.mono,
+    fontSize: 11,
+    color: DesignTokens.colors.textPrimary,
     lineHeight: 18,
   },
-
-  /* Card de Ações Rápidas */
-  actionsCard: {
-    backgroundColor: DesignTokens.colors.bgSurface,
-    borderRadius: DesignTokens.radii.card,
+  securityBox: {
     borderWidth: 1,
-    borderColor: DesignTokens.colors.border,
-    padding: 20,
+    borderColor: DesignTokens.colors.amberDim,
+    borderStyle: "dashed",
+    padding: 12,
+    gap: 6,
+    marginTop: 6,
   },
-  actionsCardTitle: {
-    fontSize: 15,
-    fontWeight: "800",
-    color: DesignTokens.colors.textPrimary,
-    marginBottom: 14,
+  securityBoxTitle: {
+    fontFamily: DesignTokens.typography.fonts.mono,
+    fontSize: 10,
+    color: DesignTokens.colors.amber,
+    fontWeight: "bold",
   },
-  actionButtonsRow: {
+  securityBoxLine: {
+    fontFamily: DesignTokens.typography.fonts.mono,
+    fontSize: 10,
+    color: DesignTokens.colors.textSecondary,
+    lineHeight: 14,
+  },
+  switchAdminBtn: {
+    backgroundColor: DesignTokens.colors.amber,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingVertical: 14,
+    marginTop: 10,
+  },
+  switchAdminBtnText: {
+    fontFamily: DesignTokens.typography.fonts.terminal,
+    fontSize: 13,
+    color: DesignTokens.colors.bgDeep,
+    fontWeight: "bold",
+    letterSpacing: 0.5,
+  },
+  alertBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "transparent",
+    borderBottomWidth: 1,
+    borderBottomColor: DesignTokens.colors.amber,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    gap: 10,
+  },
+  alertBannerText: {
+    fontFamily: DesignTokens.typography.fonts.mono,
+    fontSize: 11,
+    color: DesignTokens.colors.amber,
+    fontWeight: "bold",
+  },
+  heroCard: {
+    backgroundColor: "transparent",
+    borderWidth: 1,
+    borderColor: DesignTokens.colors.amberDim,
+    padding: 16,
+  },
+  heroTopRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: 16,
+  },
+  callsignBox: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  officerAvatar: {
+    width: 48,
+    height: 48,
+    backgroundColor: "transparent",
+    borderWidth: 1,
+    borderColor: DesignTokens.colors.amberDim,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  callsignTitle: {
+    fontFamily: DesignTokens.typography.fonts.pixel,
+    fontSize: 14,
+    color: DesignTokens.colors.amber,
+    letterSpacing: 0.5,
+  },
+  clearanceTag: {
+    backgroundColor: "transparent",
+    borderWidth: 1,
+    borderColor: DesignTokens.colors.amber,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  clearanceTagText: {
+    fontFamily: DesignTokens.typography.fonts.pixel,
+    fontSize: 10,
+    color: DesignTokens.colors.amber,
+  },
+  callsignSubtitle: {
+    fontFamily: DesignTokens.typography.fonts.mono,
+    fontSize: 11,
+    color: DesignTokens.colors.amberMid,
+    marginTop: 4,
+  },
+  creditsCard: {
+    backgroundColor: "transparent",
+    borderWidth: 1,
+    borderColor: DesignTokens.colors.amberDim,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    alignItems: "flex-end",
+  },
+  creditsLabel: {
+    fontFamily: DesignTokens.typography.fonts.mono,
+    fontSize: 10,
+    color: DesignTokens.colors.amberMid,
+  },
+  creditsValue: {
+    fontFamily: DesignTokens.typography.fonts.pixel,
+    fontSize: 18,
+    color: DesignTokens.colors.amber,
+    marginTop: 2,
+  },
+  creditsSub: {
+    fontFamily: DesignTokens.typography.fonts.mono,
+    fontSize: 10,
+    color: DesignTokens.colors.textSecondary,
+    marginTop: 2,
+  },
+  rolesRow: {
+    marginTop: 14,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: DesignTokens.colors.amberDim,
+    borderStyle: "dashed",
+    flexDirection: "row",
+    flexWrap: "wrap",
+    alignItems: "center",
+    gap: 8,
+  },
+  rolesLabel: {
+    fontFamily: DesignTokens.typography.fonts.mono,
+    fontSize: 11,
+    color: DesignTokens.colors.textSecondary,
+  },
+  rolesList: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 6,
+  },
+  roleChip: {
+    borderWidth: 1,
+    borderColor: DesignTokens.colors.amber,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  roleChipText: {
+    fontFamily: DesignTokens.typography.fonts.mono,
+    fontSize: 10,
+    color: DesignTokens.colors.amber,
+  },
+  sectionWrapper: {
+    gap: 12,
+  },
+  sectionHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    borderBottomWidth: 1,
+    borderBottomColor: DesignTokens.colors.amberDim,
+    paddingBottom: 6,
+  },
+  sectionTitle: {
+    fontFamily: DesignTokens.typography.fonts.terminal,
+    fontSize: 12,
+    color: DesignTokens.colors.amber,
+    letterSpacing: 0.5,
+  },
+  sectionBadge: {
+    fontFamily: DesignTokens.typography.fonts.mono,
+    fontSize: 10,
+    color: DesignTokens.colors.amberMid,
+  },
+  reportMetricsGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 12,
-    marginBottom: 16,
   },
-  actionLinkBtn: {
+  reportMetricCard: {
+    flex: 1,
+    minWidth: 160,
+    borderWidth: 1,
+    borderColor: DesignTokens.colors.amberDim,
+    padding: 14,
+    gap: 4,
+  },
+  reportMetricLabel: {
+    fontFamily: DesignTokens.typography.fonts.mono,
+    fontSize: 10,
+    color: DesignTokens.colors.textSecondary,
+  },
+  reportMetricVal: {
+    fontFamily: DesignTokens.typography.fonts.terminal,
+    fontSize: 18,
+    color: DesignTokens.colors.amber,
+  },
+  reportMetricSub: {
+    fontFamily: DesignTokens.typography.fonts.mono,
+    fontSize: 10,
+    color: DesignTokens.colors.textSecondary,
+  },
+  microservicesGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 12,
+  },
+  nodeCard: {
     flex: 1,
     minWidth: 200,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: DesignTokens.colors.bgElevated,
     borderWidth: 1,
-    borderColor: DesignTokens.colors.border,
-    borderRadius: DesignTokens.radii.button,
-    paddingVertical: 12,
+    borderColor: DesignTokens.colors.amberDim,
+    padding: 12,
+    gap: 4,
   },
-  actionLinkText: {
-    fontSize: 13,
-    fontWeight: "700",
-    color: DesignTokens.colors.textPrimary,
-  },
-  logoutBtn: {
+  nodeHeader: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: DesignTokens.colors.danger,
-    borderRadius: DesignTokens.radii.button,
-    paddingVertical: 14,
+    gap: 6,
+    marginBottom: 4,
   },
-  logoutBtnText: {
-    fontSize: 14,
-    fontWeight: "800",
-    color: "#FFFFFF",
-    letterSpacing: 0.5,
+  nodeLedActive: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: DesignTokens.colors.statusReady,
+  },
+  nodeLedText: {
+    fontFamily: DesignTokens.typography.fonts.mono,
+    fontSize: 10,
+    color: DesignTokens.colors.statusReady,
+  },
+  nodeName: {
+    fontFamily: DesignTokens.typography.fonts.mono,
+    fontSize: 11,
+    color: DesignTokens.colors.textPrimary,
+    fontWeight: "bold",
+  },
+  nodeTech: {
+    fontFamily: DesignTokens.typography.fonts.mono,
+    fontSize: 10,
+    color: DesignTokens.colors.textSecondary,
+  },
+  nodeStatus: {
+    fontFamily: DesignTokens.typography.fonts.mono,
+    fontSize: 10,
+    color: DesignTokens.colors.amberMid,
+    marginTop: 2,
+  },
+  nodeMetric: {
+    fontFamily: DesignTokens.typography.fonts.mono,
+    fontSize: 10,
+    color: DesignTokens.colors.textSecondary,
+  },
+  telemetrySplitRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 16,
+  },
+  oscilloscopePanel: {
+    flex: 1,
+    minWidth: 280,
+    borderWidth: 1,
+    borderColor: DesignTokens.colors.amberDim,
+    padding: 12,
+    gap: 10,
+  },
+  hyperlanesPanel: {
+    flex: 1,
+    minWidth: 280,
+    borderWidth: 1,
+    borderColor: DesignTokens.colors.amberDim,
+    padding: 12,
+    gap: 10,
+  },
+  panelHeaderRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  panelTitle: {
+    fontFamily: DesignTokens.typography.fonts.mono,
+    fontSize: 11,
+    color: DesignTokens.colors.amber,
+  },
+  panelLiveDot: {
+    fontFamily: DesignTokens.typography.fonts.mono,
+    fontSize: 10,
+    color: DesignTokens.colors.statusReady,
+  },
+  waveDisplay: {
+    backgroundColor: "transparent",
+    borderWidth: 1,
+    borderColor: DesignTokens.colors.amberDim,
+    padding: 10,
+    alignItems: "center",
+  },
+  waveLine: {
+    fontFamily: DesignTokens.typography.fonts.mono,
+    fontSize: 11,
+    color: DesignTokens.colors.amber,
+    lineHeight: 16,
+  },
+  waveOverlayGrid: {},
+  metricsTriple: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+  metricItem: {
+    alignItems: "center",
+  },
+  metricLabel: {
+    fontFamily: DesignTokens.typography.fonts.mono,
+    fontSize: 9,
+    color: DesignTokens.colors.textSecondary,
+  },
+  metricVal: {
+    fontFamily: DesignTokens.typography.fonts.mono,
+    fontSize: 11,
+    color: DesignTokens.colors.amber,
+    fontWeight: "bold",
+    marginTop: 2,
+  },
+  sectorsList: {
+    gap: 8,
+  },
+  sectorRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    borderBottomWidth: 1,
+    borderBottomColor: DesignTokens.colors.amberDim,
+    borderStyle: "dashed",
+    paddingBottom: 6,
+  },
+  sectorName: {
+    fontFamily: DesignTokens.typography.fonts.mono,
+    fontSize: 11,
+    color: DesignTokens.colors.amber,
+  },
+  sectorCoordinates: {
+    fontFamily: DesignTokens.typography.fonts.mono,
+    fontSize: 10,
+    color: DesignTokens.colors.textSecondary,
+  },
+  sectorRisk: {
+    fontFamily: DesignTokens.typography.fonts.mono,
+    fontSize: 10,
+    fontWeight: "bold",
+  },
+  sectorVessels: {
+    fontFamily: DesignTokens.typography.fonts.mono,
+    fontSize: 10,
+    color: DesignTokens.colors.textSecondary,
+  },
+  protocolButtonsRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 12,
+    marginTop: 8,
+  },
+  calibrateButton: {
+    backgroundColor: DesignTokens.colors.amber,
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    gap: 8,
+  },
+  calibrateButtonText: {
+    fontFamily: DesignTokens.typography.fonts.terminal,
+    fontSize: 12,
+    color: DesignTokens.colors.bgDeep,
+    fontWeight: "bold",
+  },
+  signOutButton: {
+    backgroundColor: "transparent",
+    borderWidth: 1,
+    borderColor: DesignTokens.colors.alert,
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    gap: 8,
+  },
+  signOutButtonText: {
+    fontFamily: DesignTokens.typography.fonts.terminal,
+    fontSize: 12,
+    color: DesignTokens.colors.alert,
   },
 });

@@ -21,8 +21,12 @@ spring:
           instances:
             login:
               - uri: http://localhost:8081
-            trade:
+            despacho:
               - uri: http://localhost:8082
+            estoque:
+              - uri: http://localhost:8084
+            relatorio:
+              - uri: http://localhost:8085
 
     gateway:
       default-filters:
@@ -31,17 +35,12 @@ spring:
         - id: auth
           uri: lb://login
           predicates:
-            - Path=/auth/**
+            - Path=/auth/**, /login/**
 
-        - id: login
-          uri: lb://login
+        - id: despacho
+          uri: lb://despacho
           predicates:
-            - Path=/login/**
-
-        - id: trade
-          uri: lb://trade
-          predicates:
-            - Path=/cards/**, /binders/**, /trades/**
+            - Path=/despacho/**, /dispatch/**, /assets/**, /docks/**
           filters:
             - name: Retry
               args:
@@ -53,6 +52,16 @@ spring:
                   maxBackoff: 50ms
                   factor: 2
                   basedOnPreviousValue: true
+
+        - id: estoque
+          uri: lb://estoque
+          predicates:
+            - Path=/estoque/**, /hangar/**
+
+        - id: relatorio
+          uri: lb://relatorio
+          predicates:
+            - Path=/relatorios/**, /reports/**, /telemetry/**
 
 logging:
   level:

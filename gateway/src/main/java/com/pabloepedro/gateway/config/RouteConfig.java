@@ -14,6 +14,7 @@ import reactor.core.publisher.Flux;
 
 import java.util.List;
 
+// Configuração de segurança reativa e CORS do API Gateway: protege as rotas e valida tokens JWT
 @Configuration
 public class RouteConfig {
 
@@ -26,10 +27,21 @@ public class RouteConfig {
                         .pathMatchers(HttpMethod.OPTIONS).permitAll()
                         .pathMatchers("/auth/**").permitAll()
                         .pathMatchers("/login/**").permitAll()
-                        .pathMatchers("/cards/**").permitAll()
-                        .pathMatchers("/trades/pending").permitAll()
-                        .pathMatchers("/binders/**").authenticated()
-                        .pathMatchers("/trades/**").authenticated()
+                        // ── CONTROLE DE ACESSO EXCLUSIVO PARA ADMINISTRADORES (ROLE_ADMIN) ──
+                        // 1. Relatórios executivos e auditoria: apenas ADMIN
+                        .pathMatchers("/relatorios/**", "/reports/**").hasAuthority("ROLE_ADMIN")
+                        // 2. Adicionar novas naves à frota da estação ou catálogo: apenas ADMIN
+                        .pathMatchers(HttpMethod.POST, "/assets/new", "/assets/novo", "/despacho/station-fleet/**", "/dispatch/station-fleet/**").hasAuthority("ROLE_ADMIN")
+                        // 3. Remover naves da frota da estação ou catálogo: apenas ADMIN
+                        .pathMatchers(HttpMethod.DELETE, "/assets/**", "/despacho/station-fleet/**", "/dispatch/station-fleet/**").hasAuthority("ROLE_ADMIN")
+                        // ── ROTAS PÚBLICAS OU OPERACIONAIS GERAIS (USER E ADMIN) ──
+                        .pathMatchers("/assets/**").permitAll()
+                        .pathMatchers("/hangar/**").permitAll()
+                        .pathMatchers("/estoque/**").permitAll()
+                        .pathMatchers("/telemetry/**").permitAll()
+                        .pathMatchers("/despacho/pending", "/despacho/pendentes", "/dispatch/pending").permitAll()
+                        .pathMatchers("/docks/**").authenticated()
+                        .pathMatchers("/despacho/**", "/dispatch/**").authenticated()
                         .anyExchange().authenticated()
                 )
                 .oauth2ResourceServer(oauth -> oauth

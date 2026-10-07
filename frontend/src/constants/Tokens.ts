@@ -1,88 +1,203 @@
 /**
- * POKÉMON TCG - DESIGN TOKENS
- * Sistema de design oficial baseado na nova identidade vermelha Pokébola (#EE1515).
+ * AERO-OS // MONOCHROME AMBER KERNEL TERMINAL v5.1
+ * Sistema de Design Tokens Estrito com Hierarquia Visual de 3 Níveis:
+ * - Nível 1: amber (#ffb000) - Títulos, valores-chave, foco, seleção, CTA
+ * - Nível 2: amberMid (#b87f00) - Dados, labels, texto secundário (WCAG AA ≈ 6:1)
+ * - Nível 3: amberDim (#885d00) - ESTRUTURA APENAS (bordos, divisórias, grelhas)
+ * Mínimo absoluto de fonte: 11px em todo o sistema.
  */
 
+// ── PALETA ÂMBAR DE ALTO CONTRASTE (WCAG AAA >= 10:1) ──
+export const AMBER_PALETTE = {
+  bgDeep: "#050200",       // Fundo principal de vácuo / tela CRT escura
+  bgPrimary: "#050200",    // Fundo primário do console de kernel
+  bgBase: "#050200",       // Base do chassi do terminal
+  bgSurface: "#0c0600",    // Superfície de painel / bloco
+  bgElevated: "#180c00",   // Elemento elevado ou popup
+  bgCardHover: "#241200",  // Realce de cursor / linha ativa
+
+  // Escala Térmica Monocromática Âmbar
+  amberLuminous: "#FFE082", // Amarelo/Âmbar Luminoso para leitura de texto primário
+  amber: "#FFB000",         // Âmbar padrão de comando
+  amberMid: "#FFC107",      // Âmbar médio quente
+  amberDim: "#8F6400",      // APENAS ESTRUTURA (bordas e divisórias)
+  amberDark: "#4D3600",     // Linhas técnicas sutis
+
+  // Tipografia Estrita
+  textPrimary: "#FFE082",   // Luminoso para leitura
+  textSecondary: "#FFB000", // Âmbar padrão
+  textMuted: "#CC8C00",     // Âmbar escurecido, mas legível contra o fundo #050200
+
+  // Escala Térmica de Alertas (Laranja e Vermelho Térmico)
+  warning: "#FF9100",       // Laranja Térmico
+  alert: "#FF3D00",         // Vermelho Térmico / Alerta Crítico
+  danger: "#FF3D00",
+
+  glow: "rgba(255, 176, 0, 0.25)",        // Brilho do texto suave e nítido
+  glowStrong: "rgba(255, 176, 0, 0.40)",  // Brilho de texto acentuado
+  scanline: "rgba(0, 0, 0, 0.08)",       // Scanline ultra-sutil
+};
+
 export const DesignTokens = {
-  // ── CORES DA MARCA & INTERFACE ──
+  // ── PALETA DE CORES MONOCROMÁTICA ÂMBAR ──
   colors: {
-    // Marca & Ação Primária
-    brandRed: "#EE1515",
-    brandRedHover: "#FF3B3B",
-    brandRedPressed: "#C40F0F",
-    brandRedSubtle: "rgba(238, 21, 21, 0.12)",
-    brandRedBorder: "rgba(238, 21, 21, 0.35)",
+    bgDeep: AMBER_PALETTE.bgDeep,
+    bgPrimary: AMBER_PALETTE.bgPrimary,
+    bgBase: AMBER_PALETTE.bgBase,
+    bgSurface: AMBER_PALETTE.bgSurface,
+    bgElevated: AMBER_PALETTE.bgElevated,
+    bgCardHover: AMBER_PALETTE.bgCardHover,
 
-    // Destaque Dourado (apenas raridade, preço especial e selos; nunca ação primária)
-    accentGold: "#FFCB05",
-    accentGoldSubtle: "rgba(255, 203, 5, 0.12)",
-    accentGoldBorder: "rgba(255, 203, 5, 0.35)",
+    // Hierarquia cromática
+    amber: AMBER_PALETTE.amber,
+    amberLuminous: AMBER_PALETTE.amberLuminous,
+    amberMid: AMBER_PALETTE.amberMid,
+    amberDim: AMBER_PALETTE.amberDim,
+    amberDark: AMBER_PALETTE.amberDark,
+    alert: AMBER_PALETTE.alert,
+    danger: AMBER_PALETTE.danger,
 
-    // Superfícies e Fundos (Dark Theme Base)
-    bgBase: "#0E0F12",
-    bgSurface: "#16181D",
-    bgElevated: "#1E2128",
-    bgCardHover: "#232731",
+    glow: AMBER_PALETTE.glow,
+    glowStrong: AMBER_PALETTE.glowStrong,
+    scanline: AMBER_PALETTE.scanline,
 
-    // Bordas
-    border: "#2A2E37",
-    borderLight: "#3B414E",
-    borderFocus: "#EE1515",
+    // Bordas e Grades Técnicas (Nível 3 estrutural)
+    border: AMBER_PALETTE.amberDim,
+    borderDim: AMBER_PALETTE.amberDark,
+    borderHighlight: AMBER_PALETTE.amber,
+    borderFocus: AMBER_PALETTE.amber,
+    borderTerminal: AMBER_PALETTE.amberDim,
+    borderLight: AMBER_PALETTE.amberDim,
 
-    // Cores Auxiliares
-    secondary: "#3399FF",
+    // Tipografia Âmbar de Alta Legibilidade (Mínimo WCAG AAA)
+    textPrimary: AMBER_PALETTE.textPrimary,      // #FFE082 - Títulos e valores dominantes luminosos
+    textSecondary: AMBER_PALETTE.textSecondary,  // #FFB000 - Dados, specs e corpo de leitura
+    textMuted: AMBER_PALETTE.textMuted,          // #CC8C00 - Labels e metadados legíveis
+    textPhosphor: AMBER_PALETTE.textPrimary,
 
-    // Textos (Contraste >= 4.5:1 sobre o fundo)
-    textPrimary: "#F5F6F8",
-    textSecondary: "#A9AFBC",
-    textMuted: "#767D8E",
+    // Estados Funcionais (Escala Térmica)
+    statusReady: AMBER_PALETTE.amber,            // #FFB000
+    statusWarning: AMBER_PALETTE.warning,        // #FF9100
+    statusCritical: AMBER_PALETTE.alert,         // #FF3D00
+    statusInfo: AMBER_PALETTE.textPrimary,       // #FFE082
+    statusPlasma: AMBER_PALETTE.amber,
 
-    // Feedback de Sistema
-    success: "#2ECC71",
-    successSubtle: "rgba(46, 204, 113, 0.15)",
-    warning: "#F5A524",
-    warningSubtle: "rgba(245, 165, 36, 0.15)",
-    danger: "#FF5A5F",
-    dangerSubtle: "rgba(255, 90, 95, 0.15)",
+    // ── ALIASES DE COMPATIBILIDADE (@deprecated - Monocromáticos) ──
+    /** @deprecated Utilize colors.amber */
+    phosphor: AMBER_PALETTE.amber,
+    /** @deprecated Utilize colors.amberDim para bordos ou colors.textSecondary para texto */
+    phosphorDim: AMBER_PALETTE.amberDim,
+    /** @deprecated Utilize colors.amberDark */
+    phosphorDark: AMBER_PALETTE.amberDark,
+    /** @deprecated Utilize colors.glow */
+    phosphorSubtle: "rgba(255, 176, 0, 0.10)",
+    /** @deprecated Utilize colors.border */
+    phosphorBorder: "rgba(255, 176, 0, 0.35)",
+    /** @deprecated Utilize colors.glowStrong */
+    phosphorGlow: AMBER_PALETTE.glowStrong,
 
-    // Tipos Elementais Pokémon (exclusivos para badges e ícones)
-    types: {
-      FIRE: { bg: "#FF4422", text: "#FFFFFF", label: "Fogo", icon: "flame" },
-      WATER: { bg: "#3399FF", text: "#FFFFFF", label: "Água", icon: "water" },
-      GRASS: { bg: "#77CC55", text: "#FFFFFF", label: "Planta", icon: "leaf" },
-      ELECTRIC: { bg: "#FFCC33", text: "#16181D", label: "Elétrico", icon: "flash" },
-      PSYCHIC: { bg: "#FF5599", text: "#FFFFFF", label: "Psíquico", icon: "eye" },
-      FIGHTING: { bg: "#BB5544", text: "#FFFFFF", label: "Lutador", icon: "fitness" },
-      DARKNESS: { bg: "#705848", text: "#FFFFFF", label: "Sombrio", icon: "moon" },
-      METAL: { bg: "#AAAABB", text: "#16181D", label: "Metal", icon: "shield" },
-      DRAGON: { bg: "#7766EE", text: "#FFFFFF", label: "Dragão", icon: "sparkles" },
-      COLORLESS: { bg: "#A8A878", text: "#16181D", label: "Incolor", icon: "star" },
-    } as Record<string, { bg: string; text: string; label: string; icon: string }>,
+    /** @deprecated Utilize colors.amber */
+    brandGreen: AMBER_PALETTE.amber,
+    /** @deprecated Utilize colors.textSecondary */
+    brandGreenDim: AMBER_PALETTE.amberMid,
+    /** @deprecated Utilize colors.amber */
+    brandGreenHover: AMBER_PALETTE.amber,
+    /** @deprecated Utilize colors.glow */
+    brandGreenSubtle: "rgba(255, 176, 0, 0.10)",
+    /** @deprecated Utilize colors.border */
+    brandGreenBorder: "rgba(255, 176, 0, 0.35)",
+    /** @deprecated Utilize colors.amber */
+    accentAmber: AMBER_PALETTE.amber,
+    /** @deprecated Utilize colors.alert */
+    brandRed: AMBER_PALETTE.alert,
+    /** @deprecated Removido tom de ciano: mapeado para âmbar luminoso */
+    telemetryCyan: AMBER_PALETTE.textPrimary,
+    /** @deprecated Removido tom de roxo: mapeado para laranja térmico */
+    plasmaPurple: AMBER_PALETTE.warning,
+
+    // Identificadores cromáticos táticos dos vetores de frota (Escala Térmica do Âmbar)
+    shipColors: {
+      interceptor: "#FFD54F",  // Amarelo Claro Térmico
+      freighter: "#FFA000",    // Âmbar Médio
+      miningDrone: "#FFB000",  // Âmbar Padrão
+      assaultMech: "#FF3D00",  // Vermelho Térmico
+      scout: "#FF6D00",        // Laranja Vivo
+      corvette: "#FF8F00",     // Laranja Âmbar
+      prototype: "#FFE082",    // Amarelo Ouro Luminoso
+    },
+
+    // Classes Operacionais dos Ativos no Terminal com Cores Térmicas
+    classes: {
+      INTERCEPTOR: { code: "INT", label: "Caça Interceptador", color: "#FFD54F", icon: "flash" },
+      FREIGHTER: { code: "FRG", label: "Cargueiro Pesado", color: "#FFA000", icon: "cube" },
+      MINING_DRONE: { code: "DRN", label: "Drone de Mineração", color: "#FFB000", icon: "hardware-chip" },
+      ASSAULT_MECH: { code: "MCH", label: "Mecha de Assalto", color: "#FF3D00", icon: "shield" },
+      SCOUT: { code: "SCT", label: "Reconhecimento Estelar", color: "#FF6D00", icon: "planet" },
+      CORVETTE: { code: "CRV", label: "Corveta de Patrulha", color: "#FF8F00", icon: "navigate" },
+    } as Record<string, { code: string; label: string; color: string; icon: string }>,
   },
 
-  // ── TIPOGRAFIA (Rajdhani Gamer/TCG + Inter UI/Body + JetBrains Mono Código) ──
+  // ── DERIVADOS DE BORDA TÉCNICA MINIMALISTA ──
+  borders: {
+    thin: {
+      borderWidth: 1,
+      borderColor: AMBER_PALETTE.amberDim,
+    },
+    dashed: {
+      borderWidth: 1,
+      borderStyle: "dashed" as const,
+      borderColor: AMBER_PALETTE.amberDim,
+    },
+    active: {
+      borderWidth: 1,
+      borderColor: AMBER_PALETTE.amber,
+    },
+  },
+
+  // ── TIPOGRAFIA MONOESPAÇADA DE ALTA NITIDEZ (MÍNIMO 11PX) ──
   typography: {
-    fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
-    fontFamilyDisplay: "'Rajdhani', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
-    fontFamilyBody: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
-    fontFamilyMono: "'JetBrains Mono', 'Fira Code', monospace",
+    fontFamily: "'JetBrains Mono', monospace",
+    fontFamilyDisplay: "'JetBrains Mono', monospace",
+    fontFamilyTerminal: "'JetBrains Mono', monospace",
+    fontFamilyMono: "'JetBrains Mono', monospace",
+    fontFamilyBody: "'JetBrains Mono', monospace",
+    fonts: {
+      pixel: "'JetBrains Mono', monospace",
+      mono: "'JetBrains Mono', monospace",
+      terminal: "'JetBrains Mono', monospace",
+      body: "'JetBrains Mono', monospace",
+      display: "'VT323', monospace",
+    },
+    // Escala estrita com mínimo absoluto de 11px
     sizes: {
-      meta: 12,       // Metadados, tags secundárias, notas de rodapé (Mínimo 12px)
-      bodySmall: 14,  // Controles, filtros, botões compactos
-      body: 16,       // Texto corrido padrão
-      sectionTitle: 20, // Títulos de seção, modais
-      pageTitle: 28,  // Título da página / h1
+      xs: 11,           // Mínimo absoluto (telemetria, FUEL, labels do radar, timestamps, tags de estado)
+      sm: 12,           // Dados e valores secundários
+      md: 14,           // Texto corrido de terminal
+      lg: 18,           // Títulos de painéis de instrumentos
+      xl: 24,           // Título do console operacional
+      display: 32,      // Código da estação e logo principal
+      // Aliases para compatibilidade
+      meta: 11,
+      bodySmall: 12,
+      body: 14,
+      sectionTitle: 18,
+      pageTitle: 24,
+    },
+    letterSpacing: {
+      tight: 0.5,
+      normal: 1,
+      wide: 1.5,
+      display: 2,
     },
     weights: {
       regular: "400",
       medium: "500",
       bold: "700",
       extraBold: "800",
-      black: "900",
     },
   },
 
-  // ── ESPAÇAMENTOS (Escala de 4px) ──
+  // ── ESCALA CONSISTENTE DE ESPAÇAMENTOS (4/8/12/16/24/32) ──
   spacing: {
     xs: 4,
     sm: 8,
@@ -90,133 +205,175 @@ export const DesignTokens = {
     base: 16,
     lg: 24,
     xl: 32,
-    xxl: 48,
+    xxl: 40,
   },
 
-  // ── BORDAS E RAIOS ──
+  // ── BREAKPOINTS RESPONSIVOS CENTRALIZADOS ──
+  breakpoints: {
+    mobile: 480,
+    tablet: 768,
+    desktop: 960,
+  },
+
+  // ── CANTOS RETOS INDUSTRIAIS (0px por especificação CRT) ──
   radii: {
-    control: 8,    // Inputs, select
-    button: 10,    // Botões
-    card: 12,      // Cards de carta, painéis
-    modal: 20,     // Modais
-    chip: 999,     // Tags, pills de filtro
+    control: 0,
+    button: 0,
+    card: 0,
+    modal: 0,
+    chip: 0,
   },
 
-  // ── SOMBRAS & EFEITOS ──
+  // ── BRILHO FÓSFORO ÂMBAR ──
   shadows: {
-    card: "0 4px 16px rgba(0, 0, 0, 0.45)",
-    cardHover: "0 14px 32px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(238, 21, 21, 0.35)",
-    modal: "0 24px 64px rgba(0, 0, 0, 0.85)",
-    focusRing: "0 0 0 2px #0E0F12, 0 0 0 4px #EE1515",
+    amber: "0 0 6px rgba(255, 176, 0, 0.40)",
+    amberGlow: "0 0 12px rgba(255, 176, 0, 0.60)",
+    terminalBezel: "inset 0 0 20px rgba(0, 0, 0, 0.9), 0 0 0 1px #885d00",
   },
-
-  // ── TRANSIÇÕES ──
-  transitions: {
-    fast: "150ms cubic-bezier(0.16, 1, 0.3, 1)",
-    normal: "200ms cubic-bezier(0.16, 1, 0.3, 1)",
-  },
-
-  // ── PROPORÇÃO DE CARTA OFICIAL ──
-  cardAspect: 63 / 88, // 0.7159
 };
 
 /**
- * Representação CSS em string para injeção nativa no head do documento HTML.
+ * Helper de Estilização React Native para Glow de Fósforo Âmbar em Dois Níveis:
+ * - 'title' (ou 'strong'): Glow pronunciado (raio 8–9) para títulos e valores-chave
+ * - 'body' (ou 'normal'): Glow sutil (raio 2.5–3) para texto de dados, garantindo nitidez
+ */
+export const glowText = (level: "title" | "body" | "normal" | "strong" = "title") => {
+  const isTitle = level === "title" || level === "strong";
+  return {
+    textShadowColor: isTitle ? "rgba(255, 184, 0, 0.30)" : "transparent",
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: isTitle ? 3 : 0,
+  };
+};
+
+/**
+ * Helper ASCII Progress Bar para Indicadores de Terminal:
+ * Exemplo: asciiBar(98, 10) -> "█████████░", asciiBar(100, 10) -> "██████████"
+ */
+export const asciiBar = (value: number, width: number = 10): string => {
+  const clamped = Math.max(0, Math.min(100, Math.round(value)));
+  const filledCount = Math.round((clamped / 100) * width);
+  const emptyCount = width - filledCount;
+  return "█".repeat(filledCount) + "░".repeat(Math.max(0, emptyCount));
+};
+
+export const borderThin = DesignTokens.borders.thin;
+export const borderDashed = DesignTokens.borders.dashed;
+export const borderActive = DesignTokens.borders.active;
+
+/**
+ * CSS Global Injetado no Web / Head:
+ * Variáveis CSS, Alto Contraste, Nitidez de Fonte e Scanlines CRT Ultra-Leves.
  */
 export const CSS_DESIGN_TOKENS = `
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&family=Rajdhani:wght@500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&family=VT323&display=swap');
 
 :root {
-  --font-display: 'Rajdhani', -apple-system, BlinkMacSystemFont, sans-serif;
-  --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+  --amber: #FFB800;
+  --amber-mid: #FFC84D;
+  --amber-dim: #8F6400;
+  --amber-dark: #4D3600;
+  --bg: #050200;
+  --bg-deep: #050200;
+  --bg-surface: #0c0600;
+  --bg-elevated: #180c00;
+  --alert: #FF3322;
+  --glow: rgba(255, 184, 0, 0.25);
+  --glow-strong: rgba(255, 184, 0, 0.40);
+  --scanline: rgba(0, 0, 0, 0.06);
 
-  --brand-red: #EE1515;
-  --brand-red-hover: #FF3B3B;
-  --brand-red-pressed: #C40F0F;
-  --brand-red-subtle: rgba(238, 21, 21, 0.12);
-  --brand-red-border: rgba(238, 21, 21, 0.35);
-
-  --accent-gold: #FFCB05;
-  --accent-gold-subtle: rgba(255, 203, 5, 0.12);
-  --accent-gold-border: rgba(255, 203, 5, 0.35);
-
-  --bg-base: #0E0F12;
-  --bg-surface: #16181D;
-  --bg-elevated: #1E2128;
-  --bg-card-hover: #232731;
-
-  --border: #2A2E37;
-  --border-light: #3B414E;
-  --border-focus: #EE1515;
-
-  --text-primary: #F5F6F8;
-  --text-secondary: #A9AFBC;
-  --text-muted: #767D8E;
-
-  --success: #2ECC71;
-  --warning: #F5A524;
-  --danger: #FF5A5F;
-
-  --radius-control: 8px;
-  --radius-card: 12px;
-  --radius-chip: 999px;
-
-  --card-aspect: 63 / 88;
-  --transition-fast: 150ms ease-out;
-  --transition-normal: 200ms ease-out;
+  --font-display: 'JetBrains Mono', monospace;
+  --font-terminal: 'JetBrains Mono', monospace;
+  --font-mono: 'JetBrains Mono', monospace;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-    scroll-behavior: auto !important;
-  }
+/* ── CONFIGURAÇÕES GLOBAIS DE TERMINAL ÂMBAR ── */
+*, *::before, *::after {
+  box-sizing: border-box;
 }
 
-/* Scrollbar estilizada */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-::-webkit-scrollbar-track {
-  background: var(--bg-base);
-}
-::-webkit-scrollbar-thumb {
-  background: var(--border);
-  border-radius: 4px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: var(--border-light);
-}
-
-/* Foco de teclado padrão WCAG */
-:focus-visible {
-  outline: 2px solid var(--brand-red) !important;
-  outline-offset: 2px !important;
-}
-
-/* ── TIPOGRAFIA GLOBAL (Inter para UI/Corpo & Rajdhani para Títulos/Preços/Badges) ── */
-*, *::before, *::after,
-html, body, #root, div, span, p, a, label, input, textarea, select, button,
-[dir="auto"], [dir="ltr"], [dir="rtl"],
-.css-text-146c3p1, [class*="css-text"] {
-  font-family: var(--font-body) !important;
+html, body, #root {
+  background-color: var(--bg-deep) !important;
+  color: var(--amber);
+  font-family: var(--font-mono);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Títulos, Headings, Valores de Preço, Badges e Destaques Gamer TCG em Rajdhani */
-h1, h2, h3, h4, h5, h6,
-.font-display, [data-typography="display"], .rajdhani-heading {
-  font-family: var(--font-display) !important;
-  letter-spacing: 0.5px;
+input, textarea, select, button {
+  font-family: var(--font-mono);
+  caret-color: var(--amber);
 }
 
-/* Tipografia Monospaçada para IDs de Instância e Dados Técnicos */
-code, pre, kbd, samp, .font-mono, [data-typography="mono"] {
-  font-family: var(--font-mono) !important;
+/* Seleção e Cursor */
+::selection {
+  background: var(--amber) !important;
+  color: var(--bg) !important;
+}
+
+/* Títulos / Nível 1: Glow Sutil sem desfoque */
+h1, h2, h3, .pixel-title, [data-typography="pixel"], [data-glow="title"] {
+  letter-spacing: 1px;
+  text-shadow: 0 0 4px var(--glow);
+}
+
+/* Texto Secundário: 100% nítido, sem text-shadow difuso */
+.amber-glow-body, [data-glow="body"] {
+  text-shadow: none;
+}
+
+/* ── EFEITO CRT SCANLINES ULTRA-SUTIL COM CONTROLE DE INTENSIDADE ── */
+body::after {
+  content: " ";
+  display: block;
+  position: fixed;
+  top: 0; left: 0; bottom: 0; right: 0;
+  width: 100vw;
+  height: 100vh;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0) 0,
+    rgba(0, 0, 0, 0) 3px,
+    rgba(0, 0, 0, 0.08) 4px
+  );
+  pointer-events: none;
+  z-index: 999999;
+  opacity: 0.20;
+  transition: opacity 0.2s ease;
+}
+
+body.crt-off::after {
+  display: none !important;
+}
+
+body.crt-subtle::after {
+  opacity: 0.18 !important;
+}
+
+body.crt-full::after {
+  opacity: 0.45 !important;
+}
+
+/* ── SCROLLBAR MONOCROMÁTICA ÂMBAR FINA ── */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg);
+  border-left: 1px solid var(--amber-dim);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--amber-dim);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--amber);
+  box-shadow: 0 0 6px var(--amber);
+}
+
+/* Foco Tático Monocromático */
+:focus-visible {
+  outline: 1px solid var(--amber) !important;
+  outline-offset: 2px !important;
 }
 `;
