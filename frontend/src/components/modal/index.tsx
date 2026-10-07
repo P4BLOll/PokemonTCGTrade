@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import { Modal, View, Text, TouchableOpacity, Platform } from "react-native";
+import { Modal, View, Text, TouchableOpacity } from "react-native";
 import { DesignTokens, glowText } from "@/constants/Tokens";
 import { TerminalButton } from "../TerminalButton";
 import { AeroIcon } from "../AeroIcon";
@@ -46,7 +46,7 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
   const actualIsDanger = isDanger ?? isDangerous ?? false;
 
   useEffect(() => {
-    if (!visible || Platform.OS !== "web" || typeof window === "undefined") return;
+    if (!visible || typeof window === "undefined") return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {

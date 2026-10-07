@@ -7,8 +7,6 @@ import {
   StyleSheet,
   ActivityIndicator,
   ScrollView,
-  KeyboardAvoidingView,
-  Platform,
 } from "react-native";
 import { router } from "expo-router";
 import { DesignTokens, glowText } from "@/constants/Tokens";
@@ -75,10 +73,7 @@ export default function RegisterScreen() {
   };
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
-      style={styles.keyboardRoot}
-    >
+    <View style={styles.keyboardRoot}>
       <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
         <View style={styles.terminalCard}>
           {/* TOP STATUS BAR */}
@@ -220,7 +215,7 @@ export default function RegisterScreen() {
           </View>
         </View>
       </ScrollView>
-    </KeyboardAvoidingView>
+    </View>
   );
 }
 

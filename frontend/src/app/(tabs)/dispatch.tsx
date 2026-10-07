@@ -7,7 +7,6 @@ import {
   ActivityIndicator,
   Modal,
   ScrollView,
-  Platform,
   useWindowDimensions,
 } from "react-native";
 import { useLocalSearchParams, router, useFocusEffect } from "expo-router";

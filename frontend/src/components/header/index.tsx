@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, TouchableOpacity, useWindowDimensions, Platform } from "react-native";
+import { View, Text, TouchableOpacity, useWindowDimensions } from "react-native";
 import { router, usePathname } from "expo-router";
 import { DesignTokens, glowText } from "@/constants/Tokens";
 import { TerminalLabels } from "@/constants/Labels";
@@ -39,7 +39,7 @@ export const Header: React.FC<Props> = ({
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
   useEffect(() => {
-    if (Platform.OS === "web" && typeof window !== "undefined") {
+    if (typeof window !== "undefined") {
       const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
       if (mediaQuery.matches) {
         setCursorVisible(true);
@@ -55,7 +55,7 @@ export const Header: React.FC<Props> = ({
   }, []);
 
   useEffect(() => {
-    if (Platform.OS !== "web" || typeof window === "undefined") return;
+    if (typeof window === "undefined") return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
       const activeEl = document.activeElement;

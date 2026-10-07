@@ -1,4 +1,4 @@
-import { StyleSheet, Platform } from "react-native";
+import { StyleSheet } from "react-native";
 import { DesignTokens } from "@/constants/Tokens";
 
 export const styles = StyleSheet.create({
@@ -7,7 +7,7 @@ export const styles = StyleSheet.create({
     borderWidth: 1,
     alignItems: "center",
     justifyContent: "center",
-    minHeight: Platform.OS === "web" ? 38 : 44,
+    minHeight: 38,
   },
   contentRow: {
     flexDirection: "row",
@@ -22,7 +22,7 @@ export const styles = StyleSheet.create({
   sizeMd: {
     paddingHorizontal: 16,
     paddingVertical: 10,
-    minHeight: Platform.OS === "web" ? 40 : 44,
+    minHeight: 40,
   },
   sizeLg: {
     paddingHorizontal: 20,

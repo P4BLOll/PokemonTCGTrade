@@ -1,5 +1,4 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
-import { Platform } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export type CrtIntensity = "FULL" | "SUBTLE" | "OFF";
@@ -13,7 +12,7 @@ interface CrtContextType {
   cycleMode: () => void;
 }
 
-// Chave pra guardar a escolha do usuário no storage do celular/navegador
+// Chave pra guardar a escolha do usuário no storage do navegador
 const STORAGE_KEY = "@aero_os_crt_intensity";
 
 const CrtContext = createContext<CrtContextType>({
@@ -55,9 +54,9 @@ export const CrtProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setIntensity(next[intensity]);
   };
 
-  // Na web, injeta a classe CSS no body pra desenhar as linhas de fósforo verde
+  // Na web, injeta a classe CSS no body pra desenhar as linhas de fósforo verde/âmbar
   const applyWebCrtStyle = (mode: CrtIntensity) => {
-    if (Platform.OS !== "web" || typeof document === "undefined") return;
+    if (typeof document === "undefined") return;
     const body = document.body;
     body.classList.remove("crt-full", "crt-subtle", "crt-off");
     body.classList.add(`crt-${mode.toLowerCase()}`);

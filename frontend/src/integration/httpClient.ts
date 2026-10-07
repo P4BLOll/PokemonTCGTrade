@@ -1,17 +1,8 @@
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { Platform } from "react-native";
 
-// No emulador Android usa o IP 10.0.2.2 para acessar o localhost da máquina hospedeira
-const getDefaultGatewayUrl = () => {
-  if (Platform.OS === "android") {
-    return "http://10.0.2.2:8080";
-  }
-  return "http://localhost:8080";
-};
-
-// URL base apontando para o Gateway (porta 8080)
-export const API_BASE_URL = process.env.EXPO_PUBLIC_GATEWAY_URL || getDefaultGatewayUrl();
+// URL base apontando para o Gateway (porta 8080 no navegador Web)
+export const API_BASE_URL = process.env.EXPO_PUBLIC_GATEWAY_URL || "http://localhost:8080";
 
 // Instância do Axios com timeout de 12 segundos
 export const httpClient = axios.create({
@@ -35,4 +26,3 @@ httpClient.interceptors.request.use(async (config) => {
   }
   return config;
 });
-

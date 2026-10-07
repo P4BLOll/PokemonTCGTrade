@@ -6,7 +6,6 @@ import {
   ScrollView,
   TouchableOpacity,
   useWindowDimensions,
-  Platform,
 } from "react-native";
 import { router } from "expo-router";
 import { AeroIcon } from "@/components/AeroIcon";
@@ -167,7 +166,7 @@ export default function OpsCenterScreen() {
 
   // Cursor terminal intermitente no Comm Log (respeita reduced-motion)
   useEffect(() => {
-    if (Platform.OS === "web" && typeof window !== "undefined") {
+    if (typeof window !== "undefined") {
       const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
       if (mediaQuery.matches) {
         setCursorVisible(true);
@@ -246,7 +245,7 @@ export default function OpsCenterScreen() {
 
             <View style={styles.docksGridWrap}>
               {ships.map((ship) => {
-                const isSelected = selectedShip.id === ship.id;
+                const isSelected = selectedShip?.id === ship.id;
                 const statusTag =
                   ship.status === "READY"
                     ? TerminalLabels.statusTags.ready

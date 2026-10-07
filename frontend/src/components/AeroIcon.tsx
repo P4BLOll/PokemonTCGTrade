@@ -1,6 +1,5 @@
 import React from "react";
-import { View, StyleSheet, Platform } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import { View, StyleSheet } from "react-native";
 
 import { DesignTokens } from "@/constants/Tokens";
 
@@ -12,8 +11,8 @@ export interface AeroIconProps {
 }
 
 /**
- * AeroIcon: Componente de Ícones Aeroespaciais Resiliente.
- * No ambiente Web, renderiza gráficos vetoriais SVG nítidos e puros com estética técnica e cantos retos.
+ * AeroIcon: Componente de Ícones Aeroespaciais para Web.
+ * Renderiza gráficos vetoriais SVG nítidos e puros com estética técnica e cantos retos.
  * Conforme ao tema monocromático Âmbar do kernel AERO-OS v5.0.
  */
 export const AeroIcon: React.FC<AeroIconProps> = ({
@@ -27,8 +26,7 @@ export const AeroIcon: React.FC<AeroIconProps> = ({
     .replace("-outline", "")
     .replace("-sharp", "");
 
-  if (Platform.OS === "web") {
-    const strokeColor = typeof color === "string" ? color : DesignTokens.colors.amber;
+  const strokeColor = typeof color === "string" ? color : DesignTokens.colors.amber;
 
     const renderSvgContent = () => {
       switch (normalized) {
@@ -530,10 +528,6 @@ export const AeroIcon: React.FC<AeroIconProps> = ({
         </svg>
       </View>
     );
-  }
-
-  // Fallback para Native
-  return <Ionicons name={name as any} size={size} color={color} style={style} />;
 };
 
 const styles = StyleSheet.create({
