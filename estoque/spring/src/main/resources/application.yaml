@@ -4,7 +4,12 @@ server:
 spring:
   application:
     name: estoque
+  rabbitmq:
+    addresses: ${SPRING_RABBITMQ_ADDRESSES:amqps://vazqbfxf:pAYGsDayyCI2oBvbYq3Fh18-jxKyEh6u@jackal.rmq.cloudamqp.com/vazqbfxf}
+    listener:
+      simple:
+        auto-startup: true
+
 logging:
   level:
     com.pabloepedro.estoque: INFO
-

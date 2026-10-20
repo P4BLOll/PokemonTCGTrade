@@ -57,6 +57,33 @@ public class RabbitConfig {
         return BindingBuilder.bind(despachoNotificationQueue).to(despachoPubSubExchange);
     }
 
+    // Exchange e Fila dedicadas para o Estoque sincronizar em tempo real as alteracoes fisicas
+    public static final String ESTOQUE_SYNC_EXCHANGE = "giedi.estoque.sync.exchange";
+    public static final String ESTOQUE_ROUTING_KEY = "despacho.alterar-estoque";
+    public static final String QUEUE_ESTOQUE_DESPACHO = "giedi.estoque.despacho.queue";
+
+    @Bean
+    public DirectExchange estoqueSyncExchange() {
+        return new DirectExchange(ESTOQUE_SYNC_EXCHANGE, true, false);
+    }
+
+    @Bean
+    public Queue estoqueDespachoQueue() {
+        return QueueBuilder.durable(QUEUE_ESTOQUE_DESPACHO).build();
+    }
+
+    // Conecta a fila do estoque na exchange Pub/Sub fanout para receber broadcast de despachos
+    @Bean
+    public Binding bindingEstoquePubSub(Queue estoqueDespachoQueue, FanoutExchange despachoPubSubExchange) {
+        return BindingBuilder.bind(estoqueDespachoQueue).to(despachoPubSubExchange);
+    }
+
+    // Conecta a fila do estoque na exchange direta de alteracao de estoque
+    @Bean
+    public Binding bindingEstoqueDirect(Queue estoqueDespachoQueue, DirectExchange estoqueSyncExchange) {
+        return BindingBuilder.bind(estoqueDespachoQueue).to(estoqueSyncExchange).with(ESTOQUE_ROUTING_KEY);
+    }
+
     // Exchange e fila de sincronização de missões e despacho operacional
     public static final String ATUALIZAR_MISSAO_EXCHANGE = "atualizar-missao-exchange";
     public static final String ATUALIZAR_MISSAO_QUEUE = "atualizar-missao-queue";

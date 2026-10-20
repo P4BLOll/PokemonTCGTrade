@@ -8,14 +8,16 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
-// Controller que expõe a rota REST para consultar as docas do hangar
+/**
+ * Controller REST secundário para consulta das docas do hangar:
+ * Depende da interface HangarInventoryService pertencente ao Domínio (Clean Architecture / DIP).
+ */
 @RestController
 @RequestMapping("/hangar")
 public class DockInventoryController {
 
     private final HangarInventoryService service;
 
-    // Injeta o serviço de inventário do hangar
     public DockInventoryController(HangarInventoryService service) {
         this.service = service;
     }
@@ -26,4 +28,3 @@ public class DockInventoryController {
         return service.listDockBays();
     }
 }
-

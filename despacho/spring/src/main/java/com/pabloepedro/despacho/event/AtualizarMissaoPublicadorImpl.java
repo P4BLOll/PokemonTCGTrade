@@ -1,6 +1,7 @@
 package com.pabloepedro.despacho.event;
 
-import com.pabloepedro.despacho.event.dto.AtualizarMissaoEvento;
+import com.pabloepedro.despacho.event.AtualizarMissaoEvento;
+import com.pabloepedro.despacho.event.AtualizarMissaoPublicador;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;

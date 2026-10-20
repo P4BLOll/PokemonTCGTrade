@@ -10,6 +10,10 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Controller REST do microsserviço de Estoque:
+ * Depende estritamente do contrato HangarInventoryService pertencente ao Domínio (Clean Architecture / DIP).
+ */
 @RestController
 @RequestMapping("/estoque")
 public class EstoqueController {

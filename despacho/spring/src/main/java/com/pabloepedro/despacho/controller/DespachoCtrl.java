@@ -5,16 +5,21 @@ import com.pabloepedro.despacho.controller.request.DespachoRequest;
 import com.pabloepedro.despacho.controller.response.DespachoResponse;
 import com.pabloepedro.despacho.controller.response.OfficerDockResponse;
 import com.pabloepedro.despacho.entity.Despacho;
+import com.pabloepedro.despacho.entity.OfficerDock;
 import com.pabloepedro.despacho.entity.enumerable.DespachoStatus;
 import com.pabloepedro.despacho.repository.DespachoRepo;
 import com.pabloepedro.despacho.service.DespachoService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-
+/**
+ * Controller REST do microsserviço de Despacho (Clean Architecture / DIP):
+ * Depende estritamente dos contratos DespachoService e DespachoRepo pertencentes ao Domínio.
+ */
 @RestController
 @RequestMapping({"/despacho", "/dispatch"})
 public class DespachoCtrl {
@@ -30,7 +35,7 @@ public class DespachoCtrl {
     // Lista os ativos da Estação Central prontos pra decolar ou em missão
     @GetMapping({"/station-fleet", "/frota-estacao"})
     public OfficerDockResponse getStationFleet() {
-        var dock = despachoService.getStationFleet();
+        OfficerDock dock = despachoService.getStationFleet();
         return new OfficerDockResponse(dock.id(), dock.officerUsername(), dock.assets());
     }
 
@@ -64,7 +69,7 @@ public class DespachoCtrl {
 
     public record ShipRequisitionBody(String pilotUsername, String shipInstanceId, String missionRoute) {}
 
-    // Piloto requisita uma nave via JSON: aplica lock atômico e manda pro RabbitMQ
+    // Piloto requisita uma nave via JSON: aplica lock atômico e notifica o Estoque via RabbitMQ
     @ResponseStatus(HttpStatus.CREATED)
     @PostMapping(value = {"/request-ship", "/requisitar-nave"}, consumes = "application/json")
     public DespachoResponse requestShipJson(@RequestBody ShipRequisitionBody req) {
@@ -97,7 +102,7 @@ public class DespachoCtrl {
         return DespachoCtrlAdp.toResponse(despacho);
     }
 
-    // Devolve a nave pra estação e libera o lock pra outros pilotos poderem usar
+    // Devolve a nave pra estação e notifica o Estoque via RabbitMQ para repor status
     @PostMapping({"/return-ship/{instanceId}", "/devolver-nave/{instanceId}"})
     public DespachoResponse returnShip(
             @PathVariable String instanceId,
@@ -140,7 +145,7 @@ public class DespachoCtrl {
     @GetMapping({"/pending", "/pendentes"})
     public List<DespachoResponse> listPending(@RequestParam(required = false) String officerUsername) {
         if (officerUsername != null && !officerUsername.isBlank()) {
-            return despachoRepo.findByOfficer(officerUsername).stream()
+            return despachoRepo.findByOfficer(officerUsername.toLowerCase()).stream()
                     .filter(t -> t.status() == DespachoStatus.PENDING)
                     .map(DespachoCtrlAdp::toResponse)
                     .toList();
@@ -151,7 +156,9 @@ public class DespachoCtrl {
     // Traz todas as ordens vinculadas a um piloto específico
     @GetMapping({"/my-orders/{username}", "/minhas-ordens/{username}"})
     public List<DespachoResponse> listMyOrders(@PathVariable String username) {
-        return despachoRepo.findByOfficer(username).stream().map(DespachoCtrlAdp::toResponse).toList();
+        return despachoRepo.findByOfficer(username.toLowerCase()).stream()
+                .map(DespachoCtrlAdp::toResponse)
+                .toList();
     }
 
     // Traz o histórico completo global de ordens da estação (para ADMIN / Auditoria)
@@ -162,10 +169,10 @@ public class DespachoCtrl {
 
     // Busca uma ordem de despacho específica pelo ID (usado para polling e auditoria)
     @GetMapping({"/order/{id}", "/ordem/{id}", "/{id}"})
-    public org.springframework.http.ResponseEntity<DespachoResponse> getOrderById(@PathVariable String id) {
+    public ResponseEntity<DespachoResponse> getOrderById(@PathVariable String id) {
         return despachoRepo.findById(id)
                 .map(DespachoCtrlAdp::toResponse)
-                .map(org.springframework.http.ResponseEntity::ok)
-                .orElse(org.springframework.http.ResponseEntity.notFound().build());
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
     }
 }

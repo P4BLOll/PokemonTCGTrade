@@ -36,7 +36,7 @@ export default function RegisterScreen() {
   const signIn = auth?.signIn || (async (u: string, p: string) => {
     try {
       const res = await api.post("/auth/service/auth", { username: u, password: p });
-      return { success: !!res.data?.token };
+      return { success: !!res.data?.authenticated || res.status === 200 };
     } catch (err: any) {
       return { success: false, message: err.response?.data?.message || err.message || "Falha no login" };
     }

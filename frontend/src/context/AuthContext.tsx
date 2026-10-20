@@ -1,17 +1,10 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { parseJwt } from "@/utils/jwt";
 import { api } from "@/services/api";
-
-interface DecodedToken {
-  sub: string;
-  roles?: string[];
-  exp?: number;
-}
 
 interface AuthContextType {
   user: string | null;
-  token: string | null;
+  token: string | null; // Oculto por segurança (armazenado exclusivamente em Cookie HttpOnly no navegador)
   roles: string[];
   isAdmin: boolean;
   isUser: boolean;
@@ -39,7 +32,6 @@ const AuthContext = createContext<AuthContextType>(defaultAuthContext);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<string | null>(null);
-  const [token, setToken] = useState<string | null>(null);
   const [roles, setRoles] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -47,74 +39,53 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     loadStoredSession();
   }, []);
 
-  // Restaura o token e o usuário do storage pra não deslogar ao recarregar a tela
+  /**
+   * Restaura a sessão do oficial a partir do Cookie seguro HttpOnly ("AUTH_SESSION").
+   * O navegador envia o cookie automaticamente via withCredentials: true.
+   * O token JWT nunca trafega pelo JavaScript do navegador nem aparece no localStorage.
+   */
   const loadStoredSession = async () => {
     try {
-      const storedToken = await AsyncStorage.getItem("@Auth:token");
-      const storedUser = await AsyncStorage.getItem("@Auth:user");
-      const storedRoles = await AsyncStorage.getItem("@Auth:roles");
-
-      if (storedToken && storedUser) {
-        setToken(storedToken);
-        setUser(storedUser);
-        // Já anexa o Bearer token no cabeçalho do Axios pra todas as requisições
-        api.defaults.headers.common["Authorization"] = `Bearer ${storedToken}`;
-        if (storedRoles) {
-          try {
-            setRoles(JSON.parse(storedRoles));
-          } catch {
-            setRoles(["ROLE_USER"]);
-          }
-        }
+      // 1. Tenta validar a sessão ativa pelo Cookie seguro HttpOnly
+      const res = await api.get("/auth/me");
+      if (res.data && res.data.authenticated && res.data.username) {
+        setUser(res.data.username);
+        setRoles(Array.isArray(res.data.roles) && res.data.roles.length > 0 ? res.data.roles : ["ROLE_USER"]);
+        setIsLoading(false);
+        return;
       }
-    } catch (e) {
-      console.error("Erro ao recuperar sessao:", e);
-    } finally {
-      setIsLoading(false);
+    } catch {
+      // Cookie ausente ou expirado no navegador
     }
+
+    // 2. Se o backend estiver temporariamente offline ou a sessão expirou, limpa o estado
+    setUser(null);
+    setRoles([]);
+    setIsLoading(false);
   };
 
-  // Faz login no Gateway, guarda o JWT e decodifica as permissões (roles)
+  /**
+   * Faz login através do Gateway.
+   * O servidor responde com header Set-Cookie HttpOnly ("AUTH_SESSION") com validade de 24h.
+   * O token JWT NÃO aparece no corpo da resposta e NÃO é armazenado no localStorage.
+   */
   const signIn = async (username: string, password: string): Promise<{ success: boolean; message?: string }> => {
     try {
       const cleanUser = username.trim().toLowerCase();
-      // Bate no Gateway que repassa pro microsserviço de Auth
       const res = await api.post("/auth/service/auth", {
         username: cleanUser,
         password: password,
       });
 
-      const tokenValue = res.data.token;
-      if (!tokenValue) {
-        return { success: false, message: "Token não retornado pelo servidor de autenticação." };
-      }
+      // Extrai os dados do oficial retornados com segurança sem o token
+      const userRoles: string[] = Array.isArray(res.data.roles) && res.data.roles.length > 0
+        ? res.data.roles
+        : ["ROLE_USER"];
 
-      // Lê as roles diretamente da resposta ou de dentro do token JWT (ROLE_ADMIN, ROLE_USER)
-      let userRoles: string[] = [];
-      if (Array.isArray(res.data.roles) && res.data.roles.length > 0) {
-        userRoles = res.data.roles;
-      } else {
-        try {
-          const decoded = parseJwt(tokenValue);
-          if (decoded && decoded.roles && Array.isArray(decoded.roles)) {
-            userRoles = decoded.roles;
-          }
-        } catch (decodeErr) {
-          console.warn("Não foi possível decodificar roles do JWT:", decodeErr);
-        }
-      }
-
-      if (userRoles.length === 0) {
-        userRoles = ["ROLE_USER"];
-      }
-
-      setToken(tokenValue);
       setUser(cleanUser);
       setRoles(userRoles);
-      api.defaults.headers.common["Authorization"] = `Bearer ${tokenValue}`;
 
-      // Salva no storage pra persistir a sessão do oficial
-      await AsyncStorage.setItem("@Auth:token", tokenValue);
+      // Salva apenas identificadores públicos de interface (sem nenhum token)
       await AsyncStorage.setItem("@Auth:user", cleanUser);
       await AsyncStorage.setItem("@Auth:roles", JSON.stringify(userRoles));
 
@@ -125,7 +96,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // Cadastra um novo oficial ou administrador no banco de dados MongoDB
+  /**
+   * Cadastra um novo oficial ou administrador no MongoDB
+   */
   const signUp = async (username: string, password: string, rolesToAssign?: string[]): Promise<{ success: boolean; message?: string }> => {
     try {
       const cleanUser = username.trim().toLowerCase();
@@ -142,10 +115,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // Limpa o token, remove o header de autorização e desloga
+  /**
+   * Encerra a sessão: notifica o servidor para revogar o Cookie HttpOnly (Max-Age=0)
+   * e reseta o estado local.
+   */
   const signOut = async () => {
+    try {
+      await api.post("/auth/logout").catch(() => null);
+    } catch {
+      // Ignora erro de rede no logout
+    }
     setUser(null);
-    setToken(null);
     setRoles([]);
     delete api.defaults.headers.common["Authorization"];
     await AsyncStorage.removeItem("@Auth:token");
@@ -160,11 +140,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     <AuthContext.Provider
       value={{
         user,
-        token,
+        token: null, // Token não aparece no navegador (protegido exclusivamente em Cookie HttpOnly)
         roles,
         isAdmin,
         isUser,
-        isAuthenticated: !!token && !!user,
+        isAuthenticated: !!user,
         isLoading,
         signIn,
         signUp,

@@ -6,21 +6,12 @@ export const API_BASE_URL = process.env.EXPO_PUBLIC_GATEWAY_URL || "http://local
 export const api = axios.create({
   baseURL: API_BASE_URL,
   timeout: 10000,
+  withCredentials: true, // OBRIGATÓRIO: Permite que o navegador envie e receba Cookies seguros HttpOnly
 });
 
-api.interceptors.request.use(async (config) => {
-  try {
-    const token = await AsyncStorage.getItem("@Auth:token");
-    if (token) {
-      if (config.headers.set) {
-        config.headers.set("Authorization", `Bearer ${token}`);
-      } else {
-        config.headers.Authorization = `Bearer ${token}`;
-      }
-    }
-  } catch (e) {
-    console.error("Erro ao carregar token no interceptor:", e);
-  }
+// Interceptor global para assegurar que cookies de credenciais sejam enviados
+api.interceptors.request.use((config) => {
+  config.withCredentials = true;
   return config;
 });
 
