@@ -61,4 +61,21 @@ public class DispatchAuditRecord {
 
     public String getDetails() { return details; }
     public void setDetails(String details) { this.details = details; }
+
+    // Setters de compatibilidade com o payload de auditoria emitido pelo microsserviço de Despacho
+    public void setOrderCode(String orderCode) {
+        if (this.dispatchId == null) this.dispatchId = orderCode;
+    }
+    public void setPilotCallsign(String pilotCallsign) {
+        if (this.requisitioner == null) this.requisitioner = pilotCallsign;
+    }
+    public void setTargetSector(String targetSector) {
+        if (this.destinationSector == null) this.destinationSector = targetSector;
+    }
+    public void setProtocol(String protocol) {
+        if (this.queueBroker == null) this.queueBroker = protocol;
+    }
+    public void setSuccess(boolean success) {
+        this.atomicLockAcquired = success;
+    }
 }

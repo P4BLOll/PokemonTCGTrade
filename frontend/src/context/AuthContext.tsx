@@ -91,7 +91,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       return { success: true };
     } catch (err: any) {
-      const msg = err.response?.data?.message || err.message || "Usuário ou senha inválidos";
+      const msg =
+        err.response?.data?.message ||
+        (err.response?.status === 401 || err.response?.status === 403
+          ? "Credenciais inválidas: Callsign ou senha incorretos."
+          : err.message || "Usuário ou senha inválidos");
       return { success: false, message: msg };
     }
   };

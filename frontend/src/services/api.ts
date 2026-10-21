@@ -279,3 +279,20 @@ export const relatorioService = {
     return res.data;
   }
 };
+
+export interface SystemUserDTO {
+  id: string;
+  username: string;
+  roles: string[];
+}
+
+export const authService = {
+  listUsers: async (): Promise<SystemUserDTO[]> => {
+    try {
+      const res = await api.get<SystemUserDTO[]>("/login/user/lista");
+      return res.data;
+    } catch {
+      return [];
+    }
+  }
+};

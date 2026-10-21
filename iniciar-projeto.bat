@@ -14,23 +14,23 @@ for %%p in (8080 8081 8082 8084 8085) do (
 
 echo [1/6] Iniciando GATEWAY (:8080)...
 start "AERO-OS // GATEWAY :8080" cmd /k "cd gateway && .\mvnw.cmd spring-boot:run"
-timeout /t 3 /nobreak > nul
+ping 127.0.0.1 -n 4 > nul
 
 echo [2/6] Iniciando AUTH SERVICE (:8081)...
 start "AERO-OS // AUTH :8081" cmd /k "cd auth && .\mvnw.cmd -pl spring spring-boot:run"
-timeout /t 3 /nobreak > nul
+ping 127.0.0.1 -n 4 > nul
 
 echo [3/6] Iniciando DESPACHO SERVICE (:8082)...
 start "AERO-OS // DESPACHO :8082" cmd /k "cd despacho && .\mvnw.cmd -pl spring spring-boot:run"
-timeout /t 3 /nobreak > nul
+ping 127.0.0.1 -n 4 > nul
 
 echo [4/6] Iniciando ESTOQUE SERVICE (:8084)...
 start "AERO-OS // ESTOQUE :8084" cmd /k "cd estoque && .\mvnw.cmd -pl spring spring-boot:run"
-timeout /t 3 /nobreak > nul
+ping 127.0.0.1 -n 4 > nul
 
 echo [5/6] Iniciando RELATORIO SERVICE (:8085)...
 start "AERO-OS // RELATORIO :8085" cmd /k "cd relatorio && .\mvnw.cmd -pl spring spring-boot:run"
-timeout /t 3 /nobreak > nul
+ping 127.0.0.1 -n 4 > nul
 
 echo [6/6] Iniciando FRONTEND (React Native / Expo Web)...
 start "AERO-OS // FRONTEND WEB" cmd /k "cd frontend && npm run web"

@@ -45,21 +45,31 @@ public class AuthCtrl {
             );
         }
 
-        AuthService.AuthResult result =
-                authService.authenticate(request.username().trim().toLowerCase(), request.password());
+        try {
+            AuthService.AuthResult result =
+                    authService.authenticate(request.username().trim().toLowerCase(), request.password());
 
-        // Cria o Cookie HttpOnly de 24h
-        ResponseCookie sessionCookie = cookieManager.createSessionCookie(result.token());
+            // Cria o Cookie HttpOnly de 24h
+            ResponseCookie sessionCookie = cookieManager.createSessionCookie(result.token());
 
-        // Retorna apenas dados do usuário sem expor o token JWT
-        return ResponseEntity.ok()
-                .header(HttpHeaders.SET_COOKIE, sessionCookie.toString())
-                .body(new AuthUserResponse(
-                        result.username(),
-                        result.roles(),
-                        true,
-                        "Sessão iniciada via Cookie Seguro HttpOnly."
-                ));
+            // Retorna apenas dados do usuário sem expor o token JWT
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.SET_COOKIE, sessionCookie.toString())
+                    .body(new AuthUserResponse(
+                            result.username(),
+                            result.roles(),
+                            true,
+                            "Sessão iniciada via Cookie Seguro HttpOnly."
+                    ));
+        } catch (Exception ex) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(new AuthUserResponse(
+                            null,
+                            List.of(),
+                            false,
+                            "Falha na autenticação: Callsign ou código de acesso incorretos."
+                    ));
+        }
     }
 
     /**

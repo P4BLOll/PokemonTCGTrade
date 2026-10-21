@@ -39,7 +39,7 @@ public class RelatorioController {
     }
 
     // Registra uma nova entrada no log de auditoria
-    @PostMapping("/auditoria")
+    @PostMapping({"/auditoria", "/auditoria/registrar"})
     public ResponseEntity<DispatchAuditRecord> postAuditRecord(@RequestBody DispatchAuditRecord record) {
         return ResponseEntity.ok(service.recordAuditEntry(record));
     }

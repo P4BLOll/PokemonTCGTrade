@@ -157,12 +157,12 @@ export const DesignTokens = {
   // ── TIPOGRAFIA MONOESPAÇADA DE ALTA NITIDEZ (MÍNIMO 11PX) ──
   typography: {
     fontFamily: "'JetBrains Mono', monospace",
-    fontFamilyDisplay: "'JetBrains Mono', monospace",
+    fontFamilyDisplay: "'VT323', monospace",
     fontFamilyTerminal: "'JetBrains Mono', monospace",
     fontFamilyMono: "'JetBrains Mono', monospace",
     fontFamilyBody: "'JetBrains Mono', monospace",
     fonts: {
-      pixel: "'JetBrains Mono', monospace",
+      pixel: "'VT323', monospace",
       mono: "'JetBrains Mono', monospace",
       terminal: "'JetBrains Mono', monospace",
       body: "'JetBrains Mono', monospace",

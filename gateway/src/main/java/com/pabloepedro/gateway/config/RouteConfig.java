@@ -40,7 +40,6 @@ public class RouteConfig {
                         .pathMatchers("/auth/**").permitAll()
                         .pathMatchers("/login/**").permitAll()
                         // ── CONTROLE DE ACESSO EXCLUSIVO PARA ADMINISTRADORES (ROLE_ADMIN) ──
-                        .pathMatchers("/relatorios/**", "/reports/**").hasAuthority("ROLE_ADMIN")
                         .pathMatchers(HttpMethod.POST, "/assets/new", "/assets/novo", "/despacho/station-fleet/**", "/dispatch/station-fleet/**").hasAuthority("ROLE_ADMIN")
                         .pathMatchers(HttpMethod.DELETE, "/assets/**", "/despacho/station-fleet/**", "/dispatch/station-fleet/**").hasAuthority("ROLE_ADMIN")
                         // ── ROTAS PÚBLICAS OU OPERACIONAIS GERAIS (USER E ADMIN) ──
@@ -48,6 +47,7 @@ public class RouteConfig {
                         .pathMatchers("/hangar/**").permitAll()
                         .pathMatchers("/estoque/**").permitAll()
                         .pathMatchers("/telemetry/**").permitAll()
+                        .pathMatchers("/relatorios/**", "/reports/**").permitAll()
                         .pathMatchers("/despacho/pending", "/despacho/pendentes", "/dispatch/pending").permitAll()
                         .pathMatchers("/docks/**").authenticated()
                         .pathMatchers("/despacho/**", "/dispatch/**").authenticated()

@@ -109,10 +109,10 @@ export const styles = StyleSheet.create({
     color: DesignTokens.colors.textPrimary,
   },
   logoTitle: {
-    fontFamily: DesignTokens.typography.fonts.terminal,
-    fontSize: DesignTokens.typography.sizes.lg,
+    fontFamily: DesignTokens.typography.fonts.display,
+    fontSize: 30,
     color: DesignTokens.colors.textPrimary,
-    letterSpacing: DesignTokens.typography.letterSpacing.normal,
+    letterSpacing: 3,
   },
   logoSub: {
     fontFamily: DesignTokens.typography.fonts.mono,
