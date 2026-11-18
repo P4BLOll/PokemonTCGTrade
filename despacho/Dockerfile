@@ -1,4 +1,4 @@
-FROM ghcr.io/graalvm/native-image-community:25i4 AS builder
+FROM ghcr.io/graalvm/native-image-community:21 AS builder
 WORKDIR /app
 
 ARG MAVEN_VERSION=3.9.16
