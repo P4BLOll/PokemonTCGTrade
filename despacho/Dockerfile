@@ -17,7 +17,7 @@ COPY domain/src domain/src
 COPY spring/src spring/src
 
 RUN mvn -pl domain -am clean install -DskipTests
-RUN mvn -pl spring -am -Pnative native:compile -DskipTests
+RUN mvn -pl spring -Pnative native:compile -DskipTests
 
 FROM debian:bookworm-slim AS runner
 WORKDIR /app

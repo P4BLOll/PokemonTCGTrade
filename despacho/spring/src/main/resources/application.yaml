@@ -1,5 +1,5 @@
 server:
-  port: 8082
+  port: ${PORT:8082}
 
 spring:
   application:
@@ -8,11 +8,11 @@ spring:
   data:
     mongodb:
       auto-index-creation: true
-      uri: "mongodb+srv://pablosousa386_db_user:25834864@cluster0.pm3txdf.mongodb.net/aerospace_hangar?retryWrites=true&w=majority"
+      uri: ${SPRING_DATA_MONGODB_URI:mongodb+srv://pablosousa386_db_user:25834864@cluster0.pm3txdf.mongodb.net/aerospace_hangar?retryWrites=true&w=majority}
 
 
   rabbitmq:
-    addresses: amqps://vazqbfxf:pAYGsDayyCI2oBvbYq3Fh18-jxKyEh6u@jackal.rmq.cloudamqp.com/vazqbfxf
+    addresses: ${SPRING_RABBITMQ_ADDRESSES:amqps://vazqbfxf:pAYGsDayyCI2oBvbYq3Fh18-jxKyEh6u@jackal.rmq.cloudamqp.com/vazqbfxf}
     listener:
       simple:
         auto-startup: true
