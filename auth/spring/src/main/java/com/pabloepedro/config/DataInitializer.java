@@ -23,6 +23,18 @@ public class DataInitializer implements CommandLineRunner {
     @Override
     public void run(String... args) {
         try {
+            // Remove eventuais cadastros duplicados antigos no banco (mantendo o registro mais recente)
+            java.util.Map<String, String> vistos = new java.util.HashMap<>();
+            for (Login l : loginRepo.listar()) {
+                if (l.username() != null) {
+                    String key = l.username().trim().toLowerCase();
+                    String idAnterior = vistos.put(key, l.id());
+                    if (idAnterior != null) {
+                        loginRepo.deletar(idAnterior);
+                    }
+                }
+            }
+
             // Garante a existência do usuário administrador
             var adminOpt = loginRepo.listar().stream()
                     .filter(l -> l.username().equalsIgnoreCase("admin"))
