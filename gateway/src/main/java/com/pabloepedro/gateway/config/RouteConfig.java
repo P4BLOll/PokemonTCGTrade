@@ -1,5 +1,6 @@
 package com.pabloepedro.gateway.config;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpCookie;
@@ -17,6 +18,8 @@ import org.springframework.web.cors.reactive.UrlBasedCorsConfigurationSource;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -29,6 +32,9 @@ import java.util.List;
 public class RouteConfig {
 
     public static final String SESSION_COOKIE_NAME = "AUTH_SESSION";
+
+    @Value("${app.cors.allowed-origins:https://*.vercel.app}")
+    private String allowedOriginsConfig;
 
     @Bean
     public SecurityWebFilterChain securityWebFilterChain(ServerHttpSecurity http) {
@@ -90,12 +96,19 @@ public class RouteConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration cors = new CorsConfiguration();
-        // Permite origens locais explícitas necessárias quando allowCredentials = true
-        cors.setAllowedOriginPatterns(List.of(
+        List<String> originPatterns = new ArrayList<>(List.of(
                 "http://localhost:*",
                 "http://127.0.0.1:*",
-                "http://[::1]:*"
+                "http://[::1]:*",
+                "https://*.vercel.app"
         ));
+        if (allowedOriginsConfig != null && !allowedOriginsConfig.isBlank()) {
+            Arrays.stream(allowedOriginsConfig.split(","))
+                    .map(s -> s.trim().replaceAll("/+$", ""))
+                    .filter(s -> !s.isBlank() && !originPatterns.contains(s))
+                    .forEach(originPatterns::add);
+        }
+        cors.setAllowedOriginPatterns(originPatterns);
         cors.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
         cors.setAllowedHeaders(List.of("*"));
         cors.setExposedHeaders(List.of(HttpHeaders.SET_COOKIE, HttpHeaders.AUTHORIZATION));

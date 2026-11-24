@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { api } from "@/services/api";
+import { loginApi, cadastroApi } from "@/services/api";
 
 interface AuthContextType {
   user: string | null;
@@ -47,7 +47,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const loadStoredSession = async () => {
     try {
       // 1. Tenta validar a sessão ativa pelo Cookie seguro HttpOnly
-      const res = await api.get("/auth/me");
+      const res = await loginApi.get("/auth/me");
       if (res.data && res.data.authenticated && res.data.username) {
         setUser(res.data.username);
         setRoles(Array.isArray(res.data.roles) && res.data.roles.length > 0 ? res.data.roles : ["ROLE_USER"]);
@@ -65,14 +65,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   /**
-   * Faz login através do Gateway.
+   * Faz login através da API de autenticação (URL configurada via variável de ambiente).
    * O servidor responde com header Set-Cookie HttpOnly ("AUTH_SESSION") com validade de 24h.
    * O token JWT NÃO aparece no corpo da resposta e NÃO é armazenado no localStorage.
    */
   const signIn = async (username: string, password: string): Promise<{ success: boolean; message?: string }> => {
     try {
       const cleanUser = username.trim().toLowerCase();
-      const res = await api.post("/auth/service/auth", {
+      const res = await loginApi.post("/auth/service/auth", {
         username: cleanUser,
         password: password,
       });
@@ -107,7 +107,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const cleanUser = username.trim().toLowerCase();
       const payloadRoles = rolesToAssign && rolesToAssign.length > 0 ? rolesToAssign : ["USER"];
-      await api.post("/login/user/cadastrar", {
+      await cadastroApi.post("/login/user/cadastrar", {
         username: cleanUser,
         password: password,
         roles: payloadRoles,
@@ -125,13 +125,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
    */
   const signOut = async () => {
     try {
-      await api.post("/auth/logout").catch(() => null);
+      await loginApi.post("/auth/logout").catch(() => null);
     } catch {
       // Ignora erro de rede no logout
     }
     setUser(null);
     setRoles([]);
-    delete api.defaults.headers.common["Authorization"];
+    delete loginApi.defaults.headers.common["Authorization"];
     await AsyncStorage.removeItem("@Auth:token");
     await AsyncStorage.removeItem("@Auth:user");
     await AsyncStorage.removeItem("@Auth:roles");

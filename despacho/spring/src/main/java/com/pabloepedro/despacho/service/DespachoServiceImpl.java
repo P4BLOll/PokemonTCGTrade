@@ -17,10 +17,17 @@ import com.pabloepedro.despacho.repository.OfficerDockRepo;
 import com.pabloepedro.despacho.repository.ShipAssetRepo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * Implementação do serviço de Despacho e Alocação da frota.
@@ -31,6 +38,8 @@ import java.util.UUID;
 public class DespachoServiceImpl implements DespachoService {
 
     private static final Logger log = LoggerFactory.getLogger(DespachoServiceImpl.class);
+    private static final int MAX_HTTP_RETRY_ATTEMPTS = 3;
+    private static final long HTTP_RETRY_DELAY_MS = 500L;
 
     private final OfficerDockRepo dockRepo;
     private final DespachoRepo despachoRepo;
@@ -38,6 +47,8 @@ public class DespachoServiceImpl implements DespachoService {
     private final AtualizarMissaoPublicador atualizarMissaoPublicador;
     private final ShipAssetRepo assetRepo;
     private final EstoqueEventPublisherPort estoqueEventPublisher;
+    private final String relatorioServiceUrl;
+    private final HttpClient httpClient;
 
     public DespachoServiceImpl(
             OfficerDockRepo dockRepo,
@@ -45,13 +56,18 @@ public class DespachoServiceImpl implements DespachoService {
             DespachoQueueProducer queueProducer,
             AtualizarMissaoPublicador atualizarMissaoPublicador,
             ShipAssetRepo assetRepo,
-            EstoqueEventPublisherPort estoqueEventPublisher) {
+            EstoqueEventPublisherPort estoqueEventPublisher,
+            @Value("${services.relatorio.url:http://localhost:8085}") String relatorioServiceUrl) {
         this.dockRepo = dockRepo;
         this.despachoRepo = despachoRepo;
         this.queueProducer = queueProducer;
         this.atualizarMissaoPublicador = atualizarMissaoPublicador;
         this.assetRepo = assetRepo;
         this.estoqueEventPublisher = estoqueEventPublisher;
+        this.relatorioServiceUrl = relatorioServiceUrl.replaceAll("/+$", "");
+        this.httpClient = HttpClient.newBuilder()
+                .connectTimeout(Duration.ofSeconds(3))
+                .build();
     }
 
     @Override
@@ -333,19 +349,46 @@ public class DespachoServiceImpl implements DespachoService {
 
     private void notifyAudit(String orderCode, String shipCode, String shipName, String pilotCallsign,
                              String targetSector, String status, boolean success, String details) {
-        try {
-            java.net.http.HttpClient client = java.net.http.HttpClient.newHttpClient();
-            String jsonPayload = String.format(
-                    "{\"orderCode\":\"%s\",\"shipCode\":\"%s\",\"shipName\":\"%s\",\"pilotCallsign\":\"%s\",\"targetSector\":\"%s\",\"protocol\":\"RabbitMQ / Direct\",\"status\":\"%s\",\"success\":%b,\"details\":\"%s\"}",
-                    orderCode, shipCode, shipName, pilotCallsign, targetSector, status, success, details
-            );
-            java.net.http.HttpRequest request = java.net.http.HttpRequest.newBuilder()
-                    .uri(java.net.URI.create("http://localhost:8085/relatorios/auditoria/registrar"))
-                    .header("Content-Type", "application/json")
-                    .POST(java.net.http.HttpRequest.BodyPublishers.ofString(jsonPayload))
-                    .timeout(java.time.Duration.ofMillis(600))
-                    .build();
-            client.sendAsync(request, java.net.http.HttpResponse.BodyHandlers.discarding());
-        } catch (Exception ignored) {}
+        String jsonPayload = String.format(
+                "{\"orderCode\":\"%s\",\"shipCode\":\"%s\",\"shipName\":\"%s\",\"pilotCallsign\":\"%s\",\"targetSector\":\"%s\",\"protocol\":\"RabbitMQ / Direct\",\"status\":\"%s\",\"success\":%b,\"details\":\"%s\"}",
+                orderCode, shipCode, shipName, pilotCallsign, targetSector, status, success, details
+        );
+        String endpoint = relatorioServiceUrl + "/relatorios/auditoria/registrar";
+        CompletableFuture.runAsync(() -> enviarPostComRetry(endpoint, jsonPayload));
+    }
+
+    // Retry simples para chamada HTTP externa ao serviço de Relatórios (até 3 tentativas)
+    private void enviarPostComRetry(String url, String jsonPayload) {
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(url))
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(jsonPayload))
+                .timeout(Duration.ofSeconds(4))
+                .build();
+
+        for (int tentativa = 1; tentativa <= MAX_HTTP_RETRY_ATTEMPTS; tentativa++) {
+            try {
+                HttpResponse<Void> response = httpClient.send(request, HttpResponse.BodyHandlers.discarding());
+                if (response.statusCode() < 500) {
+                    return;
+                }
+                log.warn("[DESPACHO HTTP RETRY] Tentativa {}/{} falhou com status {} ao chamar {}",
+                        tentativa, MAX_HTTP_RETRY_ATTEMPTS, response.statusCode(), url);
+            } catch (Exception ex) {
+                log.warn("[DESPACHO HTTP RETRY] Tentativa {}/{} falhou ao chamar {}: {}",
+                        tentativa, MAX_HTTP_RETRY_ATTEMPTS, url, ex.getMessage());
+            }
+
+            if (tentativa < MAX_HTTP_RETRY_ATTEMPTS) {
+                try {
+                    Thread.sleep(HTTP_RETRY_DELAY_MS * tentativa);
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    return;
+                }
+            }
+        }
+        log.error("[DESPACHO HTTP RETRY] Todas as {} tentativas falharam ao notificar auditoria em {}",
+                MAX_HTTP_RETRY_ATTEMPTS, url);
     }
 }

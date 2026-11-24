@@ -1,0 +1,90 @@
+name: Deploy Vercel
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'frontend/**'
+      - '.github/workflows/vercel-deploy.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'frontend/**'
+      - '.github/workflows/vercel-deploy.yml'
+  workflow_dispatch:
+
+env:
+  VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+  VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./frontend
+    concurrency:
+      group: vercel-${{ github.ref }}
+      cancel-in-progress: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Instalar Vercel CLI
+        run: npm install --global vercel@latest
+
+      - name: Definir ambiente
+        id: env
+        run: |
+          if [ "${{ github.event_name }}" = "push" ] || [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "target=production" >> "$GITHUB_OUTPUT"
+            echo "flag=--prod" >> "$GITHUB_OUTPUT"
+          else
+            echo "target=preview" >> "$GITHUB_OUTPUT"
+            echo "flag=" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Baixar configuração do projeto Vercel
+        run: |
+          vercel pull --yes --environment=${{ steps.env.outputs.target }} --token=${{ secrets.VERCEL_TOKEN }}
+          # Evita erro de caminho duplicado (frontend/frontend) caso o Root Directory esteja definido como "frontend" no painel da Vercel
+          node -e '
+            const fs = require("fs");
+            const p = ".vercel/project.json";
+            if (fs.existsSync(p)) {
+              const cfg = JSON.parse(fs.readFileSync(p, "utf8"));
+              if (cfg.settings && cfg.settings.rootDirectory) {
+                delete cfg.settings.rootDirectory;
+                fs.writeFileSync(p, JSON.stringify(cfg));
+              }
+            }
+          '
+
+      - name: Build
+        env:
+          SECRET_URL_GATEWAY: ${{ secrets.URL_GATEWAY }}
+          SECRET_URL_LOGIN: ${{ secrets.URL_LOGIN }}
+          SECRET_URL_CADASTRO: ${{ secrets.URL_CADASTRO }}
+          SECRET_URL_DESPACHO: ${{ secrets.URL_DESPACHO }}
+          SECRET_URL_ESTOQUE: ${{ secrets.URL_ESTOQUE }}
+          SECRET_URL_RELATORIO: ${{ secrets.URL_RELATORIO }}
+        run: |
+          [ -n "$SECRET_URL_GATEWAY" ] && export EXPO_PUBLIC_GATEWAY_URL="$SECRET_URL_GATEWAY"
+          [ -n "$SECRET_URL_LOGIN" ] && export EXPO_PUBLIC_LOGIN_URL="$SECRET_URL_LOGIN"
+          [ -n "$SECRET_URL_CADASTRO" ] && export EXPO_PUBLIC_CADASTRO_URL="$SECRET_URL_CADASTRO"
+          [ -n "$SECRET_URL_DESPACHO" ] && export EXPO_PUBLIC_DESPACHO_URL="$SECRET_URL_DESPACHO"
+          [ -n "$SECRET_URL_ESTOQUE" ] && export EXPO_PUBLIC_ESTOQUE_URL="$SECRET_URL_ESTOQUE"
+          [ -n "$SECRET_URL_RELATORIO" ] && export EXPO_PUBLIC_RELATORIO_URL="$SECRET_URL_RELATORIO"
+          vercel build ${{ steps.env.outputs.flag }} --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Deploy
+        id: deploy
+        run: |
+          url=$(vercel deploy --prebuilt ${{ steps.env.outputs.flag }} --token=${{ secrets.VERCEL_TOKEN }})
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+          echo "### Deploy ${{ steps.env.outputs.target }}: $url" >> "$GITHUB_STEP_SUMMARY"

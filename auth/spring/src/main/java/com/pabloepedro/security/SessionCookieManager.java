@@ -2,6 +2,8 @@ package com.pabloepedro.security;
 
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseCookie;
 import org.springframework.stereotype.Component;
 
@@ -12,6 +14,7 @@ import java.time.Duration;
  * - Gera cookies com flag HttpOnly garantindo que scripts no navegador NÃO consigam ler o token.
  * - Define tempo de vida estrito (24 horas) para persistência da sessão no navegador.
  * - Extrai o token de autenticação a partir de cookies ou de headers HTTP para interoperabilidade.
+ * - Suporta configuração via variáveis de ambiente (COOKIE_SECURE / COOKIE_SAME_SITE) para HTTPS cross-site (Vercel + Render).
  */
 @Component
 public class SessionCookieManager {
@@ -20,16 +23,31 @@ public class SessionCookieManager {
     // 24 horas de sessão mantida no navegador
     public static final long SESSION_DURATION_SECONDS = 24L * 60 * 60;
 
+    private final boolean cookieSecure;
+    private final String cookieSameSite;
+
+    public SessionCookieManager() {
+        this(false, "Lax");
+    }
+
+    @Autowired
+    public SessionCookieManager(
+            @Value("${app.cookie.secure:false}") boolean cookieSecure,
+            @Value("${app.cookie.same-site:Lax}") String cookieSameSite) {
+        this.cookieSecure = cookieSecure;
+        this.cookieSameSite = cookieSameSite;
+    }
+
     /**
      * Gera o Cookie HttpOnly com o token JWT embutido para salvar a sessão no navegador.
      */
     public ResponseCookie createSessionCookie(String token) {
         return ResponseCookie.from(COOKIE_NAME, token)
                 .httpOnly(true)       // Impede acesso via JavaScript / document.cookie (proteção contra XSS)
-                .secure(false)        // Permitir tráfego local HTTP durante desenvolvimento
+                .secure(cookieSecure) // true em produção HTTPS (Vercel + Render); false em dev HTTP local
                 .path("/")            // Válido para todas as rotas da aplicação
                 .maxAge(Duration.ofSeconds(SESSION_DURATION_SECONDS)) // Determinado tempo no navegador
-                .sameSite("Lax")      // Proteção padrão contra CSRF
+                .sameSite(cookieSameSite) // None em cross-site HTTPS (Vercel -> Render); Lax em localhost
                 .build();
     }
 
@@ -39,10 +57,10 @@ public class SessionCookieManager {
     public ResponseCookie createLogoutCookie() {
         return ResponseCookie.from(COOKIE_NAME, "")
                 .httpOnly(true)
-                .secure(false)
+                .secure(cookieSecure)
                 .path("/")
                 .maxAge(0)            // Exclui imediatamente o cookie no navegador
-                .sameSite("Lax")
+                .sameSite(cookieSameSite)
                 .build();
     }
 

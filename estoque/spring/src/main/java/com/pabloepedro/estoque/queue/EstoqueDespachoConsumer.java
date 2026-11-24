@@ -47,8 +47,10 @@ public class EstoqueDespachoConsumer {
                 log.warn("[ESTOQUE AMQP LISTENER] Não foi possível interpretar o payload da mensagem de despacho.");
             }
         } catch (Exception ex) {
-            // Captura falhas para registrar no log e evitar que a fila fique presa em loop
-            log.error("[ESTOQUE AMQP LISTENER] Erro ao processar mensagem assíncrona de despacho: {}", ex.getMessage(), ex);
+            // Relança a exceção para ativar o retry nativo do Spring AMQP (3 tentativas com backoff e sem requeue infinito)
+            log.error("[ESTOQUE AMQP LISTENER] Erro ao processar mensagem assíncrona de despacho (acionando retry): {}",
+                    ex.getMessage(), ex);
+            throw ex instanceof RuntimeException re ? re : new RuntimeException(ex);
         }
     }
 

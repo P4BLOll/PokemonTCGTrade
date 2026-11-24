@@ -1,9 +1,27 @@
 server:
-  port: 8085
+  port: ${PORT:8085}
 
 spring:
   application:
     name: relatorio
+
+services:
+  gateway:
+    url: ${URL_GATEWAY:http://localhost:8080}
+  auth:
+    url: ${URL_AUTH:http://localhost:8081}
+  despacho:
+    url: ${URL_DESPACHO:http://localhost:8082}
+  frontend:
+    url: ${URL_FRONTEND:http://localhost:8083}
+  estoque:
+    url: ${URL_ESTOQUE:http://localhost:8084}
+  rabbitmq:
+    addresses: ${SPRING_RABBITMQ_ADDRESSES:}
+
+app:
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:https://*.vercel.app}
 
 logging:
   level:

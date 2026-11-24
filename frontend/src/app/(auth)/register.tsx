@@ -13,7 +13,7 @@ import { router } from "expo-router";
 import { DesignTokens } from "@/constants/Tokens";
 import { useAuth } from "@/context/AuthContext";
 import { AeroIcon } from "@/components/AeroIcon";
-import { api } from "@/services/api";
+import { loginApi, cadastroApi } from "@/services/api";
 
 /**
  * Emblema Circular Retrô de Recrutamento / Insígnia de Patente Militar Estelar em SVG Pixel Art.
@@ -177,7 +177,7 @@ export default function RegisterScreen() {
 
   const signUp = auth?.signUp || (async (u: string, p: string, r?: string[]) => {
     try {
-      await api.post("/login/user/cadastrar", { username: u, password: p, roles: r || ["USER"] });
+      await cadastroApi.post("/login/user/cadastrar", { username: u, password: p, roles: r || ["USER"] });
       return { success: true };
     } catch (err: any) {
       return { success: false, message: err.response?.data?.message || err.message || "Falha ao registrar oficial de frota" };
@@ -186,7 +186,7 @@ export default function RegisterScreen() {
 
   const signIn = auth?.signIn || (async (u: string, p: string) => {
     try {
-      const res = await api.post("/auth/service/auth", { username: u, password: p });
+      const res = await loginApi.post("/auth/service/auth", { username: u, password: p });
       return { success: !!res.data?.authenticated || res.status === 200 };
     } catch (err: any) {
       return { success: false, message: err.response?.data?.message || err.message || "Falha no login" };

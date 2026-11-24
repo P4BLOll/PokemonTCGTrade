@@ -79,22 +79,33 @@ public class DespachoConsumer {
             log.info("[AMQP DISPATCH WORKER - LIQUIDAÇÃO] Ordem [{}] liquidada com sucesso! Titularidade atualizada.", despacho.id());
 
         } catch (Exception ex) {
-            log.error("[AMQP DISPATCH WORKER] Erro na liquidação da ordem [{}]: {}", despacho.id(), ex.getMessage());
+            log.error("[AMQP DISPATCH WORKER] Erro na liquidação da ordem [{}] (acionando retry nativo do RabbitMQ): {}",
+                    despacho.id(), ex.getMessage());
+            throw ex instanceof RuntimeException re ? re : new RuntimeException(ex);
         }
     }
 
-    // Fila 2: Consome a mesma mensagem em paralelo pra gerar log de auditoria
+    // Fila 2: Consome a mesma mensagem em paralelo pra gerar log de auditoria (com retry nativo do Spring AMQP)
     @RabbitListener(queues = RabbitConfig.QUEUE_DESPACHO_NOTIFICATION)
     public void processDespachoNotification(Despacho despacho) {
-        if ("station_alpha_7".equalsIgnoreCase(despacho.senderUsername())) {
-            log.info("[PUB/SUB - NOTIFICAÇÃO] ESTAÇÃO CENTRAL ALPHA-7 despachou nave [{}] para o piloto [{}] na rota [{}]!",
-                    despacho.offeredInstanceId(), despacho.receiverUsername(), despacho.requestedInstanceId());
-        } else if ("station_alpha_7".equalsIgnoreCase(despacho.receiverUsername())) {
-            log.info("[PUB/SUB - NOTIFICAÇÃO] Piloto [{}] devolveu com sucesso a nave [{}] à doca da ESTAÇÃO CENTRAL ALPHA-7!",
-                    despacho.senderUsername(), despacho.offeredInstanceId());
-        } else {
-            log.info("[PUB/SUB - NOTIFICAÇÃO] Ordem [{}] executada entre [{}] e [{}]!",
-                    despacho.id(), despacho.senderUsername(), despacho.receiverUsername());
+        try {
+            if (despacho == null) {
+                throw new IllegalArgumentException("Payload de notificação de despacho nulo");
+            }
+            if ("station_alpha_7".equalsIgnoreCase(despacho.senderUsername())) {
+                log.info("[PUB/SUB - NOTIFICAÇÃO] ESTAÇÃO CENTRAL ALPHA-7 despachou nave [{}] para o piloto [{}] na rota [{}]!",
+                        despacho.offeredInstanceId(), despacho.receiverUsername(), despacho.requestedInstanceId());
+            } else if ("station_alpha_7".equalsIgnoreCase(despacho.receiverUsername())) {
+                log.info("[PUB/SUB - NOTIFICAÇÃO] Piloto [{}] devolveu com sucesso a nave [{}] à doca da ESTAÇÃO CENTRAL ALPHA-7!",
+                        despacho.senderUsername(), despacho.offeredInstanceId());
+            } else {
+                log.info("[PUB/SUB - NOTIFICAÇÃO] Ordem [{}] executada entre [{}] e [{}]!",
+                        despacho.id(), despacho.senderUsername(), despacho.receiverUsername());
+            }
+        } catch (Exception ex) {
+            log.error("[PUB/SUB - NOTIFICAÇÃO] Erro ao processar notificação (acionando retry nativo do RabbitMQ): {}",
+                    ex.getMessage());
+            throw ex instanceof RuntimeException re ? re : new RuntimeException(ex);
         }
     }
 }

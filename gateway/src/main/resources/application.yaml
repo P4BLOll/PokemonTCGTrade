@@ -1,5 +1,5 @@
 server:
-  port: 8080
+  port: ${PORT:8080}
 
 spring:
   application:
@@ -9,59 +9,83 @@ spring:
     oauth2:
       resourceserver:
         jwt:
-          issuer-uri: http://localhost:8081
+          issuer-uri: ${URL_AUTH:http://localhost:8081}
 
   cloud:
     compatibility-verifier:
       enabled: false
-
-    discovery:
-      client:
-        simple:
-          instances:
-            login:
-              - uri: http://localhost:8081
-            despacho:
-              - uri: http://localhost:8082
-            estoque:
-              - uri: http://localhost:8084
-            relatorio:
-              - uri: http://localhost:8085
 
     gateway:
       default-filters:
         - DedupeResponseHeader=Access-Control-Allow-Origin Access-Control-Allow-Credentials Access-Control-Allow-Methods Access-Control-Allow-Headers, RETAIN_FIRST
       routes:
         - id: auth
-          uri: lb://login
+          uri: ${URL_AUTH:http://localhost:8081}
           predicates:
             - Path=/auth/**, /login/**
+          filters:
+            - name: Retry
+              args:
+                retries: 3
+                statuses: BAD_GATEWAY, SERVICE_UNAVAILABLE, GATEWAY_TIMEOUT
+                methods: GET, POST
+                backoff:
+                  firstBackoff: 100ms
+                  maxBackoff: 1000ms
+                  factor: 2
+                  basedOnPreviousValue: true
 
         - id: despacho
-          uri: lb://despacho
+          uri: ${URL_DESPACHO:http://localhost:8082}
           predicates:
             - Path=/despacho/**, /dispatch/**, /assets/**, /docks/**
           filters:
             - name: Retry
               args:
                 retries: 3
-                statuses: BAD_GATEWAY, SERVICE_UNAVAILABLE, NOT_FOUND
+                statuses: BAD_GATEWAY, SERVICE_UNAVAILABLE, GATEWAY_TIMEOUT
                 methods: GET, POST
                 backoff:
-                  firstBackoff: 10ms
-                  maxBackoff: 50ms
+                  firstBackoff: 100ms
+                  maxBackoff: 1000ms
                   factor: 2
                   basedOnPreviousValue: true
 
         - id: estoque
-          uri: lb://estoque
+          uri: ${URL_ESTOQUE:http://localhost:8084}
           predicates:
             - Path=/estoque/**, /hangar/**
+          filters:
+            - name: Retry
+              args:
+                retries: 3
+                statuses: BAD_GATEWAY, SERVICE_UNAVAILABLE, GATEWAY_TIMEOUT
+                methods: GET, POST
+                backoff:
+                  firstBackoff: 100ms
+                  maxBackoff: 1000ms
+                  factor: 2
+                  basedOnPreviousValue: true
 
         - id: relatorio
-          uri: lb://relatorio
+          uri: ${URL_RELATORIO:http://localhost:8085}
           predicates:
             - Path=/relatorios/**, /reports/**, /telemetry/**
+          filters:
+            - name: Retry
+              args:
+                retries: 3
+                statuses: BAD_GATEWAY, SERVICE_UNAVAILABLE, GATEWAY_TIMEOUT
+                methods: GET, POST
+                backoff:
+                  firstBackoff: 100ms
+                  maxBackoff: 1000ms
+                  factor: 2
+                  basedOnPreviousValue: true
+
+app:
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:https://*.vercel.app}
 
 logging:
   level:

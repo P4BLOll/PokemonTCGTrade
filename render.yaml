@@ -1,0 +1,104 @@
+services:
+  - type: web
+    name: aero-auth
+    runtime: docker
+    rootDir: auth
+    dockerfilePath: ./Dockerfile
+    plan: free
+    envVars:
+      - key: PORT
+        value: "8080"
+      - key: SPRING_DATA_MONGODB_URI
+        sync: false
+      - key: SPRING_RABBITMQ_ADDRESSES
+        sync: false
+      - key: COOKIE_SECURE
+        value: "true"
+      - key: COOKIE_SAME_SITE
+        value: "None"
+      - key: CORS_ALLOWED_ORIGINS
+        sync: false
+
+  - type: web
+    name: aero-despacho
+    runtime: docker
+    rootDir: despacho
+    dockerfilePath: ./Dockerfile
+    plan: free
+    envVars:
+      - key: PORT
+        value: "8080"
+      - key: SPRING_DATA_MONGODB_URI
+        sync: false
+      - key: SPRING_RABBITMQ_ADDRESSES
+        sync: false
+      - key: URL_RELATORIO
+        sync: false
+      - key: CORS_ALLOWED_ORIGINS
+        sync: false
+
+  - type: web
+    name: aero-estoque
+    runtime: docker
+    rootDir: estoque
+    dockerfilePath: ./Dockerfile
+    plan: free
+    envVars:
+      - key: PORT
+        value: "8080"
+      - key: SPRING_DATA_MONGODB_URI
+        sync: false
+      - key: SPRING_RABBITMQ_ADDRESSES
+        sync: false
+      - key: CORS_ALLOWED_ORIGINS
+        sync: false
+
+  - type: web
+    name: aero-relatorio
+    runtime: docker
+    rootDir: relatorio
+    dockerfilePath: ./Dockerfile
+    plan: free
+    envVars:
+      - key: PORT
+        value: "8080"
+      - key: SPRING_DATA_MONGODB_URI
+        sync: false
+      - key: SPRING_RABBITMQ_ADDRESSES
+        sync: false
+      - key: URL_GATEWAY
+        sync: false
+      - key: URL_AUTH
+        sync: false
+      - key: URL_DESPACHO
+        sync: false
+      - key: URL_ESTOQUE
+        sync: false
+      - key: URL_FRONTEND
+        sync: false
+      - key: CORS_ALLOWED_ORIGINS
+        sync: false
+
+  - type: web
+    name: aero-gateway
+    runtime: docker
+    rootDir: gateway
+    dockerfilePath: ./Dockerfile
+    plan: free
+    envVars:
+      - key: PORT
+        value: "8080"
+      - key: SPRING_DATA_MONGODB_URI
+        sync: false
+      - key: SPRING_RABBITMQ_ADDRESSES
+        sync: false
+      - key: URL_AUTH
+        sync: false
+      - key: URL_DESPACHO
+        sync: false
+      - key: URL_ESTOQUE
+        sync: false
+      - key: URL_RELATORIO
+        sync: false
+      - key: CORS_ALLOWED_ORIGINS
+        sync: false

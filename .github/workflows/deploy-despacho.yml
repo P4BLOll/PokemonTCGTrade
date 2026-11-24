@@ -1,9 +1,13 @@
-name: workflow.yml
+name: Deploy Despacho (Render)
 
 on:
   push:
     branches:
       - main
+    paths:
+      - 'despacho/**'
+      - '.github/workflows/deploy-despacho.yml'
+  workflow_dispatch:
 
 jobs:
   build-deploy:
@@ -27,3 +31,13 @@ jobs:
           context: ./despacho
           tags: ${{ secrets.USERNAME_AEROSPACE }}/despacho-spring:latest
           push: true
+
+      - name: Disparar deploy no Render (opcional se Deploy Hook configurado)
+        env:
+          RENDER_DEPLOY_HOOK: ${{ secrets.RENDER_DEPLOY_HOOK_DESPACHO }}
+        run: |
+          if [ -n "$RENDER_DEPLOY_HOOK" ]; then
+            curl -fsSL -X POST "$RENDER_DEPLOY_HOOK"
+          else
+            echo "RENDER_DEPLOY_HOOK_DESPACHO não configurado; imagem enviada ao Docker Hub."
+          fi

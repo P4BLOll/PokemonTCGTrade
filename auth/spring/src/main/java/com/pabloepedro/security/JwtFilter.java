@@ -29,7 +29,7 @@ public class JwtFilter extends OncePerRequestFilter {
     }
 
     public JwtFilter(JwtSec jwt, UserDetailsService service){
-        this(jwt, service, new SessionCookieManager());
+        this(jwt, service, new SessionCookieManager(false, "Lax"));
     }
 
     @Override
