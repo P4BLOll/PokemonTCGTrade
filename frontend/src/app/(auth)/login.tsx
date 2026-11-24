@@ -182,32 +182,22 @@ export default function LoginScreen() {
   const { width } = useWindowDimensions();
   const isDesktop = width >= 860;
 
-  // Estado inicial pré-preenchido com valores brilhantes para contraste imediato
   const [selectedRole, setSelectedRole] = useState<"USER" | "ADMIN">("USER");
-  const [username, setUsername] = useState("COMMANDER_RYN");
-  const [password, setPassword] = useState("12345");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
   const [focusedInput, setFocusedInput] = useState<"username" | "password" | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [cursorBlink, setCursorBlink] = useState(true);
 
   const usernameInputRef = useRef<TextInput>(null);
   const passwordInputRef = useRef<TextInput>(null);
-
-  // Efeito do cursor de bloco CRT piscante (█)
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCursorBlink((prev) => !prev);
-    }, 530);
-    return () => clearInterval(interval);
-  }, []);
 
   const handleSelectRole = (role: "USER" | "ADMIN") => {
     setSelectedRole(role);
     setErrorMsg(null);
     if (role === "USER") {
-      setUsername("COMMANDER_RYN");
-      setPassword("12345");
+      setUsername("");
+      setPassword("");
     } else {
       setUsername("admin");
       setPassword("admin123");
@@ -367,27 +357,24 @@ export default function LoginScreen() {
                   </View>
                 ) : null}
 
-                {/* INPUT 1: CALLSIGN (Puro terminal com colchetes a 320px e cursor ao lado do texto) */}
+                {/* INPUT 1: CALLSIGN */}
                 <View style={styles.inputFieldBlock}>
                   <Text style={styles.inputFieldLabel}>
                     CALLSIGN DO OFICIAL // usr@kernel:&gt;
                   </Text>
                   <TouchableOpacity
-                    style={styles.terminalBracketRow}
+                    style={[
+                      styles.terminalBracketRow,
+                      focusedInput === "username" && styles.terminalBracketRowFocused,
+                    ]}
                     activeOpacity={1}
                     onPress={() => usernameInputRef.current?.focus()}
                   >
                     <Text style={styles.bracketChar}>[</Text>
                     <View style={styles.terminalInputArea}>
-                      <Text style={styles.displayText} numberOfLines={1}>
-                        <Text style={styles.typedText}>{username || "COMMANDER_RYN"}</Text>
-                        {focusedInput === "username" && cursorBlink ? (
-                          <Text style={styles.inlineCursor}>█</Text>
-                        ) : null}
-                      </Text>
                       <TextInput
                         ref={usernameInputRef}
-                        style={styles.terminalHiddenInput}
+                        style={styles.terminalDirectInput}
                         value={username}
                         onChangeText={(val) => {
                           setUsername(val);
@@ -398,6 +385,8 @@ export default function LoginScreen() {
                         onFocus={() => setFocusedInput("username")}
                         onBlur={() => setFocusedInput(null)}
                         onSubmitEditing={handleLogin}
+                        placeholder={focusedInput === "username" ? "" : "digite seu callsign"}
+                        placeholderTextColor="#664600"
                         autoCapitalize="none"
                         autoCorrect={false}
                       />
@@ -406,34 +395,31 @@ export default function LoginScreen() {
                   </TouchableOpacity>
                 </View>
 
-                {/* INPUT 2: CÓDIGO DE ACESSO (Asteriscos grandes com espaçamento amplo a 320px) */}
+                {/* INPUT 2: CÓDIGO DE ACESSO */}
                 <View style={styles.inputFieldBlock}>
                   <Text style={styles.inputFieldLabel}>
                     CÓDIGO DE ACESSO // key@cipher:&gt;
                   </Text>
                   <TouchableOpacity
-                    style={styles.terminalBracketRow}
+                    style={[
+                      styles.terminalBracketRow,
+                      focusedInput === "password" && styles.terminalBracketRowFocused,
+                    ]}
                     activeOpacity={1}
                     onPress={() => passwordInputRef.current?.focus()}
                   >
                     <Text style={styles.bracketChar}>[</Text>
                     <View style={styles.terminalInputArea}>
-                      <Text style={styles.displayText} numberOfLines={1}>
-                        <Text style={styles.passwordMaskedText}>
-                          {"*".repeat(password.length || 5)}
-                        </Text>
-                        {focusedInput === "password" && cursorBlink ? (
-                          <Text style={styles.inlineCursor}>█</Text>
-                        ) : null}
-                      </Text>
                       <TextInput
                         ref={passwordInputRef}
-                        style={styles.terminalHiddenInput}
+                        style={styles.terminalDirectInput}
                         value={password}
                         onChangeText={setPassword}
                         onFocus={() => setFocusedInput("password")}
                         onBlur={() => setFocusedInput(null)}
                         onSubmitEditing={handleLogin}
+                        placeholder={focusedInput === "password" ? "" : "digite sua senha"}
+                        placeholderTextColor="#664600"
                         secureTextEntry
                         autoCapitalize="none"
                         autoCorrect={false}
@@ -775,11 +761,16 @@ const styles = StyleSheet.create({
   terminalBracketRow: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "transparent",
-    borderWidth: 0,
+    backgroundColor: "rgba(255, 176, 0, 0.04)",
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(143, 100, 0, 0.45)",
     paddingVertical: 2,
     maxWidth: 320,
     width: "100%",
+  },
+  terminalBracketRowFocused: {
+    borderBottomColor: "#FFB000",
+    backgroundColor: "rgba(255, 176, 0, 0.09)",
   },
   bracketChar: {
     fontFamily: DesignTokens.typography.fonts.mono,
@@ -790,60 +781,21 @@ const styles = StyleSheet.create({
   },
   terminalInputArea: {
     flex: 1,
-    position: "relative",
     height: 36,
     justifyContent: "center",
-    marginHorizontal: 6,
+    marginHorizontal: 8,
   },
-  displayText: {
-    fontFamily: DesignTokens.typography.fonts.mono,
-    fontSize: 22,
-    color: "#FFE082",
-    fontWeight: "700",
-    letterSpacing: 1.5,
-    lineHeight: 28,
-  },
-  typedText: {
-    color: "#FFE082",
-    fontSize: 22,
-    fontWeight: "700",
-    letterSpacing: 1.5,
-    textShadowColor: "rgba(255, 224, 130, 0.45)",
-    textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 6,
-  },
-  passwordMaskedText: {
-    color: "#FFE082",
-    fontSize: 22,
-    fontWeight: "700",
-    letterSpacing: 4,
-    textShadowColor: "rgba(255, 224, 130, 0.45)",
-    textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 6,
-  },
-  placeholderText: {
-    color: "#664600",
-    fontWeight: "600",
-    letterSpacing: 1,
-    fontSize: 18,
-  },
-  inlineCursor: {
-    color: "#FFE082",
-    fontSize: 20,
-    fontWeight: "900",
-    marginLeft: 2,
-  },
-  terminalHiddenInput: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
+  terminalDirectInput: {
     width: "100%",
     height: "100%",
-    opacity: 0,
-    fontSize: 22,
+    fontFamily: DesignTokens.typography.fonts.mono,
+    fontSize: 18,
+    color: "#FFE082",
+    fontWeight: "700",
+    letterSpacing: 1,
     backgroundColor: "transparent",
+    paddingVertical: 0,
+    outlineStyle: "none" as any,
   },
 
   // ── BOTÃO CTA (BORDA #FFE082, FUNDO 0.12 E TEXTO 16PX) ──

@@ -363,32 +363,29 @@ export default function RegisterScreen() {
                   </View>
                 ) : null}
 
-                {/* INPUT 1: CALLSIGN (Puro terminal delimitado por colchetes [ ]) */}
+                {/* INPUT 1: CALLSIGN */}
                 <View style={styles.inputFieldBlock}>
                   <Text style={styles.inputFieldLabel}>
                     DEFINIR CALLSIGN // new_usr@kernel:&gt;
                   </Text>
                   <TouchableOpacity
-                    style={styles.terminalBracketRow}
+                    style={[
+                      styles.terminalBracketRow,
+                      focusedInput === "username" && styles.terminalBracketRowFocused,
+                    ]}
                     activeOpacity={1}
                     onPress={() => usernameInputRef.current?.focus()}
                   >
                     <Text style={styles.bracketChar}>[</Text>
                     <View style={styles.terminalInputArea}>
-                      <Text style={styles.displayText} numberOfLines={1}>
-                        <Text style={styles.typedText}>{username || "NOVO_CALLSIGN"}</Text>
-                        {focusedInput === "username" && cursorBlink ? (
-                          <Text style={styles.inlineCursor}>█</Text>
-                        ) : null}
-                      </Text>
                       <TextInput
                         ref={usernameInputRef}
-                        style={styles.terminalHiddenInput}
+                        style={styles.terminalDirectInput}
                         value={username}
                         onChangeText={setUsername}
                         onFocus={() => setFocusedInput("username")}
                         onBlur={() => setFocusedInput(null)}
-                        placeholder="NOVO_CALLSIGN"
+                        placeholder={focusedInput === "username" ? "" : "digite o novo callsign"}
                         placeholderTextColor="#664600"
                         autoCapitalize="none"
                         autoCorrect={false}
@@ -398,34 +395,29 @@ export default function RegisterScreen() {
                   </TouchableOpacity>
                 </View>
 
-                {/* INPUT 2: CÓDIGO CIPHER (Asteriscos grandes com espaçamento amplo) */}
+                {/* INPUT 2: CÓDIGO CIPHER */}
                 <View style={styles.inputFieldBlock}>
                   <Text style={styles.inputFieldLabel}>
                     CÓDIGO CIPHER (MÍN. 6 DÍGITOS) // key@cipher:&gt;
                   </Text>
                   <TouchableOpacity
-                    style={styles.terminalBracketRow}
+                    style={[
+                      styles.terminalBracketRow,
+                      focusedInput === "password" && styles.terminalBracketRowFocused,
+                    ]}
                     activeOpacity={1}
                     onPress={() => passwordInputRef.current?.focus()}
                   >
                     <Text style={styles.bracketChar}>[</Text>
                     <View style={styles.terminalInputArea}>
-                      <Text style={styles.displayText} numberOfLines={1}>
-                        <Text style={styles.passwordMaskedText}>
-                          {"*".repeat(password.length || 6)}
-                        </Text>
-                        {focusedInput === "password" && cursorBlink ? (
-                          <Text style={styles.inlineCursor}>█</Text>
-                        ) : null}
-                      </Text>
                       <TextInput
                         ref={passwordInputRef}
-                        style={styles.terminalHiddenInput}
+                        style={styles.terminalDirectInput}
                         value={password}
                         onChangeText={setPassword}
                         onFocus={() => setFocusedInput("password")}
                         onBlur={() => setFocusedInput(null)}
-                        placeholder="••••••••"
+                        placeholder={focusedInput === "password" ? "" : "mínimo 6 caracteres"}
                         placeholderTextColor="#664600"
                         secureTextEntry
                         autoCapitalize="none"
@@ -442,29 +434,24 @@ export default function RegisterScreen() {
                     CONFIRMAR CÓDIGO CIPHER // verify@cipher:&gt;
                   </Text>
                   <TouchableOpacity
-                    style={styles.terminalBracketRow}
+                    style={[
+                      styles.terminalBracketRow,
+                      focusedInput === "confirmPassword" && styles.terminalBracketRowFocused,
+                    ]}
                     activeOpacity={1}
                     onPress={() => confirmPasswordInputRef.current?.focus()}
                   >
                     <Text style={styles.bracketChar}>[</Text>
                     <View style={styles.terminalInputArea}>
-                      <Text style={styles.displayText} numberOfLines={1}>
-                        <Text style={styles.passwordMaskedText}>
-                          {"*".repeat(confirmPassword.length || 6)}
-                        </Text>
-                        {focusedInput === "confirmPassword" && cursorBlink ? (
-                          <Text style={styles.inlineCursor}>█</Text>
-                        ) : null}
-                      </Text>
                       <TextInput
                         ref={confirmPasswordInputRef}
-                        style={styles.terminalHiddenInput}
+                        style={styles.terminalDirectInput}
                         value={confirmPassword}
                         onChangeText={setConfirmPassword}
                         onFocus={() => setFocusedInput("confirmPassword")}
                         onBlur={() => setFocusedInput(null)}
                         onSubmitEditing={handleRegister}
-                        placeholder="••••••••"
+                        placeholder={focusedInput === "confirmPassword" ? "" : "repita a senha"}
                         placeholderTextColor="#664600"
                         secureTextEntry
                         autoCapitalize="none"
@@ -807,11 +794,16 @@ const styles = StyleSheet.create({
   terminalBracketRow: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "transparent",
-    borderWidth: 0,
+    backgroundColor: "rgba(255, 176, 0, 0.04)",
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(143, 100, 0, 0.45)",
     paddingVertical: 1,
     maxWidth: 320,
     width: "100%",
+  },
+  terminalBracketRowFocused: {
+    borderBottomColor: "#FFB000",
+    backgroundColor: "rgba(255, 176, 0, 0.09)",
   },
   bracketChar: {
     fontFamily: DesignTokens.typography.fonts.mono,
@@ -822,60 +814,21 @@ const styles = StyleSheet.create({
   },
   terminalInputArea: {
     flex: 1,
-    position: "relative",
     height: 36,
     justifyContent: "center",
-    marginHorizontal: 6,
+    marginHorizontal: 8,
   },
-  displayText: {
-    fontFamily: DesignTokens.typography.fonts.mono,
-    fontSize: 22,
-    color: "#FFE082",
-    fontWeight: "700",
-    letterSpacing: 1.5,
-    lineHeight: 28,
-  },
-  typedText: {
-    color: "#FFE082",
-    fontSize: 22,
-    fontWeight: "700",
-    letterSpacing: 1.5,
-    textShadowColor: "rgba(255, 224, 130, 0.45)",
-    textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 6,
-  },
-  passwordMaskedText: {
-    color: "#FFE082",
-    fontSize: 22,
-    fontWeight: "700",
-    letterSpacing: 4,
-    textShadowColor: "rgba(255, 224, 130, 0.45)",
-    textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 6,
-  },
-  placeholderText: {
-    color: "#664600",
-    fontWeight: "600",
-    letterSpacing: 1,
-    fontSize: 18,
-  },
-  inlineCursor: {
-    color: "#FFE082",
-    fontSize: 20,
-    fontWeight: "900",
-    marginLeft: 2,
-  },
-  terminalHiddenInput: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
+  terminalDirectInput: {
     width: "100%",
     height: "100%",
-    opacity: 0,
-    fontSize: 22,
+    fontFamily: DesignTokens.typography.fonts.mono,
+    fontSize: 18,
+    color: "#FFE082",
+    fontWeight: "700",
+    letterSpacing: 1,
     backgroundColor: "transparent",
+    paddingVertical: 0,
+    outlineStyle: "none" as any,
   },
 
   // ── BOTÃO CTA (BORDA #FFE082, FUNDO 0.12 E TEXTO 16PX) ──
