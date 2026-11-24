@@ -45,8 +45,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
    * O token JWT nunca trafega pelo JavaScript do navegador nem aparece no localStorage.
    */
   const loadStoredSession = async () => {
+    // Garante que nenhum dado de autenticação fique salvo no localStorage
+    await AsyncStorage.multiRemove(["@Auth:token", "@Auth:user", "@Auth:roles"]).catch(() => {});
+
     try {
-      // 1. Tenta validar a sessão ativa pelo Cookie seguro HttpOnly
+      // 1. Tenta validar a sessão ativa exclusivamente pelo Cookie seguro HttpOnly
       const res = await loginApi.get("/auth/me");
       if (res.data && res.data.authenticated && res.data.username) {
         setUser(res.data.username);
@@ -67,7 +70,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   /**
    * Faz login através da API de autenticação (URL configurada via variável de ambiente).
    * O servidor responde com header Set-Cookie HttpOnly ("AUTH_SESSION") com validade de 24h.
-   * O token JWT NÃO aparece no corpo da resposta e NÃO é armazenado no localStorage.
+   * Nenhum dado de autenticação (token, user ou roles) é salvo no localStorage.
    */
   const signIn = async (username: string, password: string): Promise<{ success: boolean; message?: string }> => {
     try {
@@ -85,9 +88,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(cleanUser);
       setRoles(userRoles);
 
-      // Salva apenas identificadores públicos de interface (sem nenhum token)
-      await AsyncStorage.setItem("@Auth:user", cleanUser);
-      await AsyncStorage.setItem("@Auth:roles", JSON.stringify(userRoles));
+      // Remove qualquer resquício do localStorage (a sessão fica 100% no Cookie HttpOnly)
+      await AsyncStorage.multiRemove(["@Auth:token", "@Auth:user", "@Auth:roles"]).catch(() => {});
 
       return { success: true };
     } catch (err: any) {
