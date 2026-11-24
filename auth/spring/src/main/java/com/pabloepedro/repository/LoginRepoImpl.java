@@ -22,10 +22,21 @@ public class LoginRepoImpl implements LoginRepo {
         this.repo = repo;
     }
 
-    // Salva o usuário no MongoDB e retorna com a senha tratada
+    // Salva o usuário no MongoDB e retorna com a senha tratada (evita duplicatas de username)
     @Override
     public Login salvar(Login login) {
         LoginOrm orm = LoginRepoAdp.castEntity(login);
+        List<LoginOrm> existentes = repo.findAll().stream()
+                .filter(u -> u.username() != null && login.username() != null
+                        && u.username().equalsIgnoreCase(login.username().trim()))
+                .toList();
+        if (!existentes.isEmpty()) {
+            String primaryId = existentes.get(0).id();
+            for (int i = 1; i < existentes.size(); i++) {
+                repo.deleteById(existentes.get(i).id());
+            }
+            orm = new LoginOrm(primaryId, login.username().trim().toLowerCase(), orm.password(), orm.roles());
+        }
         LoginOrm ormSave = repo.save(orm);
         return LoginRepoAdp.castOrm(ormSave, encoder);
     }
@@ -54,10 +65,17 @@ public class LoginRepoImpl implements LoginRepo {
         repo.deleteById(id);
     }
 
-    // Busca pelo nome de usuário; se não achar, joga exceção do Spring Security
+    // Busca pelo nome de usuário (resiliente mesmo se houver registros duplicados legados no banco)
     @Override
     public Login findByUsername(String username) {
-        Optional<LoginOrm> optional = repo.findByUsername(username);
+        Optional<LoginOrm> optional;
+        try {
+            optional = repo.findByUsername(username);
+        } catch (Exception ex) {
+            optional = repo.findAll().stream()
+                    .filter(u -> u.username() != null && username != null && u.username().equalsIgnoreCase(username))
+                    .reduce((first, second) -> second);
+        }
         if (optional.isEmpty()) {
             throw new UsernameNotFoundException("Usuario não encontrado: " + username);
         }

@@ -94,7 +94,7 @@ public class SecConfig {
                 // Libera rotas públicas de autenticação, checagem de sessão e cadastro
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                        .requestMatchers("/auth/**", "/login/user/cadastrar/**", "/login/user/lista").permitAll()
+                        .requestMatchers("/auth/**", "/login/user/cadastrar/**", "/login/user/lista", "/error").permitAll()
                         .anyRequest()
                         .authenticated())
                 // Executa nosso filtro JWT antes do filtro padrão do Spring

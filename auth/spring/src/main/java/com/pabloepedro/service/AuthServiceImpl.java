@@ -1,7 +1,6 @@
 package com.pabloepedro.service;
 
 import com.pabloepedro.security.JwtSec;
-import io.jsonwebtoken.Claims;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.GrantedAuthority;
@@ -49,7 +48,6 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    @SuppressWarnings("unchecked")
     public Optional<SessionDetails> validateSession(String token) {
         if (token == null || token.isBlank()) {
             return Optional.empty();
@@ -60,15 +58,14 @@ public class AuthServiceImpl implements AuthService {
                 return Optional.empty();
             }
 
-            Claims claims = jwtSec.parseClaims(token);
-            String username = claims.getSubject();
-            List<String> roles = claims.get("roles", List.class);
+            String username = jwtSec.getUsername(token);
+            List<String> roles = jwtSec.getRoles(token);
 
             if (username == null || username.isBlank()) {
                 return Optional.empty();
             }
 
-            List<String> resolvedRoles = (roles != null) ? roles : List.of("ROLE_USER");
+            List<String> resolvedRoles = (roles != null && !roles.isEmpty()) ? roles : List.of("ROLE_USER");
             return Optional.of(new SessionDetails(username, resolvedRoles));
         } catch (Exception ex) {
             return Optional.empty();
