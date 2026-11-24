@@ -210,8 +210,12 @@ export default function TelemetryProfileScreen() {
   }, []);
 
   useEffect(() => {
+    if (!isAdmin) {
+      setLoading(false);
+      return;
+    }
     fetchAllOperationalData();
-  }, [fetchAllOperationalData]);
+  }, [isAdmin, fetchAllOperationalData]);
 
   // Ação interativa real: repor peças de reposição no estoque MongoDB
   const handleRestockPart = async (code: string) => {
@@ -269,6 +273,78 @@ export default function TelemetryProfileScreen() {
   // Valor patrimonial real consolidado da frota
   const totalFleetMarketValue = ships.reduce((sum, s) => sum + (s.contractRateCR ? s.contractRateCR * 15 : 4500), 0);
   const criticalArsenalCount = arsenal.filter((a) => a.belowThreshold || a.stockUnits < a.minThreshold).length;
+
+  // ── SE O USUÁRIO FOR APENAS ROLE_USER: EXIBE TELA DE ACESSO NEGADO / CLEARANCE ──
+  if (!isAdmin) {
+    return (
+      <View style={styles.container}>
+        <Header
+          stationCode="ORBITAL ALPHA-7"
+          activeSector="SETOR DE AUDITORIA // ACESSO RESTRITO"
+          badgeText={`OFICIAL: @${user?.toUpperCase() || "USER"}`}
+        />
+
+        <ScrollView style={styles.scrollArea} contentContainerStyle={styles.deniedScrollContent}>
+          <View style={styles.accessDeniedCard}>
+            <View style={styles.accessDeniedTopBar}>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                <AeroIcon name="warning" size={16} color={DesignTokens.colors.alert} />
+                <Text style={styles.accessDeniedTopTitle}>
+                  [ ! ] PROTOCOLO DE DEFESA // CLEARANCE DEFCON 1
+                </Text>
+              </View>
+              <Text style={styles.accessDeniedStatusTag}>ACESSO RESTRITO</Text>
+            </View>
+
+            <View style={styles.accessDeniedBody}>
+              <View style={styles.accessDeniedBadge}>
+                <Text style={styles.accessDeniedBadgeText}>
+                  PERFIL AUTENTICADO: [ {roles.join(" // ") || "ROLE_USER"} ]
+                </Text>
+              </View>
+
+              <Text style={[styles.accessDeniedHeading, glowText("title")]}>
+                TERMINAL DE RELATÓRIOS &amp; AUDITORIA BLOQUEADO
+              </Text>
+
+              <Text style={styles.accessDeniedParagraph}>
+                O terminal consolidado de Relatórios Executivos, Auditoria Financeira,
+                Consumo de Dobra e Telemetria do Cluster é de visualização confidencial.
+              </Text>
+
+              <Text style={styles.accessDeniedParagraph}>
+                Regra de Segurança do Sistema: Apenas oficiais com patente de
+                <Text style={{ color: DesignTokens.colors.amber, fontWeight: "bold" }}>
+                  {" "}COMANDANTE GERAL (ROLE_ADMIN){" "}
+                </Text>
+                possuem clearance autorizado para acessar e consultar os dados deste microsserviço.
+              </Text>
+
+              <View style={styles.securityBox}>
+                <Text style={styles.securityBoxTitle}>DIRETRIZES ATIVAS DE CONTROLE:</Text>
+                <Text style={styles.securityBoxLine}>
+                  • Gateway Security: .pathMatchers(&quot;/relatorios/**&quot;).hasAuthority(&quot;ROLE_ADMIN&quot;)
+                </Text>
+                <Text style={styles.securityBoxLine}>
+                  • Microsserviço Relatório: Porta :8085 [STATUS: FECHADO PARA ROLE_USER]
+                </Text>
+                <Text style={styles.securityBoxLine}>
+                  • Gestão de Frota: Adicionar/Remover naves exclusivo para ROLE_ADMIN
+                </Text>
+              </View>
+
+              <TouchableOpacity style={styles.switchAdminBtn} onPress={handleSignOut} activeOpacity={0.85}>
+                <AeroIcon name="key" size={16} color={DesignTokens.colors.bgDeep} />
+                <Text style={styles.switchAdminBtnText}>
+                  [ ENTRAR COMO ADMINISTRADOR // ROLE_ADMIN ]
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </ScrollView>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -1014,6 +1090,110 @@ const styles = StyleSheet.create({
     padding: 16,
     paddingBottom: 90,
     gap: 22,
+  },
+  deniedScrollContent: {
+    padding: 20,
+    flexGrow: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  accessDeniedCard: {
+    width: "100%",
+    maxWidth: 580,
+    borderWidth: 1,
+    borderColor: DesignTokens.colors.alert,
+    backgroundColor: CRT_PALETTE.surface,
+  },
+  accessDeniedTopBar: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: DesignTokens.colors.alert,
+    borderStyle: "dashed",
+    overflow: "hidden",
+  },
+  accessDeniedTopTitle: {
+    fontFamily: DesignTokens.typography.fonts.terminal,
+    fontSize: 13,
+    color: DesignTokens.colors.alert,
+    letterSpacing: 0.5,
+  },
+  accessDeniedStatusTag: {
+    fontFamily: DesignTokens.typography.fonts.mono,
+    fontSize: 10,
+    color: DesignTokens.colors.alert,
+    borderWidth: 1,
+    borderColor: DesignTokens.colors.alert,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  accessDeniedBody: {
+    padding: 24,
+    gap: 14,
+  },
+  accessDeniedBadge: {
+    borderWidth: 1,
+    borderColor: DesignTokens.colors.amberDim,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    alignSelf: "flex-start",
+  },
+  accessDeniedBadgeText: {
+    fontFamily: DesignTokens.typography.fonts.mono,
+    fontSize: 11,
+    color: DesignTokens.colors.textSecondary,
+  },
+  accessDeniedHeading: {
+    fontFamily: DesignTokens.typography.fonts.terminal,
+    fontSize: 16,
+    color: DesignTokens.colors.alert,
+    letterSpacing: 0.5,
+    marginTop: 4,
+  },
+  accessDeniedParagraph: {
+    fontFamily: DesignTokens.typography.fonts.mono,
+    fontSize: 11,
+    color: DesignTokens.colors.textPrimary,
+    lineHeight: 18,
+  },
+  securityBox: {
+    borderWidth: 1,
+    borderColor: DesignTokens.colors.amberDim,
+    borderStyle: "dashed",
+    padding: 12,
+    gap: 6,
+    marginTop: 6,
+  },
+  securityBoxTitle: {
+    fontFamily: DesignTokens.typography.fonts.mono,
+    fontSize: 10,
+    color: DesignTokens.colors.amber,
+    fontWeight: "bold",
+  },
+  securityBoxLine: {
+    fontFamily: DesignTokens.typography.fonts.mono,
+    fontSize: 10,
+    color: DesignTokens.colors.textSecondary,
+    lineHeight: 14,
+  },
+  switchAdminBtn: {
+    backgroundColor: DesignTokens.colors.amber,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingVertical: 14,
+    marginTop: 10,
+  },
+  switchAdminBtnText: {
+    fontFamily: DesignTokens.typography.fonts.terminal,
+    fontSize: 13,
+    color: DesignTokens.colors.bgDeep,
+    fontWeight: "bold",
+    letterSpacing: 0.5,
   },
   loadingWrapper: {
     padding: 40,

@@ -164,6 +164,7 @@ export const Header: React.FC<Props> = ({
           <View style={styles.consoleTabsGroup}>
             {OPERATIONAL_CONSOLES.map((console) => {
               const isActive = isTabActive(console.path);
+              const isRestrictedTab = console.id === "04" && !isAdmin;
 
               return (
                 <TouchableOpacity
@@ -175,7 +176,7 @@ export const Header: React.FC<Props> = ({
                   accessibilityLabel={console.label}
                 >
                   <AeroIcon
-                    name={console.icon}
+                    name={isRestrictedTab ? "lock-closed" : console.icon}
                     size={13}
                     color={isActive ? DesignTokens.colors.bgDeep : DesignTokens.colors.textPrimary}
                     style={{ marginRight: 4 }}
@@ -192,7 +193,7 @@ export const Header: React.FC<Props> = ({
                       isActive ? styles.consoleTabTextActive : styles.consoleTabTextInactive,
                     ]}
                   >
-                    {console.name}
+                    {isRestrictedTab ? "TELEMETRY [🔒]" : console.name}
                   </Text>
                 </TouchableOpacity>
               );
