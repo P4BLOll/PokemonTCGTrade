@@ -44,9 +44,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
    * O navegador envia o cookie automaticamente via withCredentials: true.
    * O token JWT nunca trafega pelo JavaScript do navegador nem aparece no localStorage.
    */
+  const clearLegacyStorage = async () => {
+    try {
+      await AsyncStorage.removeItem("@Auth:token");
+      await AsyncStorage.removeItem("@Auth:user");
+      await AsyncStorage.removeItem("@Auth:roles");
+    } catch {
+      // Ignora caso AsyncStorage não esteja disponível
+    }
+  };
+
   const loadStoredSession = async () => {
-    // Garante que nenhum dado de autenticação fique salvo no localStorage
-    await AsyncStorage.multiRemove(["@Auth:token", "@Auth:user", "@Auth:roles"]).catch(() => {});
+    await clearLegacyStorage();
 
     try {
       // 1. Tenta validar a sessão ativa exclusivamente pelo Cookie seguro HttpOnly
@@ -89,7 +98,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setRoles(userRoles);
 
       // Remove qualquer resquício do localStorage (a sessão fica 100% no Cookie HttpOnly)
-      await AsyncStorage.multiRemove(["@Auth:token", "@Auth:user", "@Auth:roles"]).catch(() => {});
+      await clearLegacyStorage();
 
       return { success: true };
     } catch (err: any) {
