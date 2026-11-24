@@ -145,6 +145,7 @@ export default function TelemetryProfileScreen() {
 
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
+  const [gatewayForbidden, setGatewayForbidden] = useState(false);
   const [systemAlert, setSystemAlert] = useState<string | null>(null);
   const [restockingCode, setRestockingCode] = useState<string | null>(null);
 
@@ -158,7 +159,7 @@ export default function TelemetryProfileScreen() {
   const [metricas, setMetricas] = useState<EstoqueMetricasData | null>(null);
   const [usersList, setUsersList] = useState<SystemUserDTO[]>([]);
 
-  // Carrega todos os dados reais em paralelo
+  // Carrega todos os dados reais passando pelo API Gateway (que valida a role no Cookie HttpOnly)
   const fetchAllOperationalData = useCallback(async (isRefresh = false) => {
     if (isRefresh) {
       setSyncing(true);
@@ -167,8 +168,11 @@ export default function TelemetryProfileScreen() {
     }
 
     try {
+      // A permissão é validada exclusivamente pelo API Gateway na rota /relatorios/**
+      const execData = await relatorioService.getExecutiveReport();
+      setGatewayForbidden(false);
+
       const [
-        execData,
         clusterData,
         fuelData,
         auditData,
@@ -177,7 +181,6 @@ export default function TelemetryProfileScreen() {
         metricasData,
         usersData,
       ] = await Promise.all([
-        relatorioService.getExecutiveReport().catch(() => null),
         relatorioService.getClusterHealth().catch(() => null),
         relatorioService.getFuelReport().catch(() => null),
         relatorioService.getAuditTrail().catch(() => []),
@@ -200,9 +203,13 @@ export default function TelemetryProfileScreen() {
         setSystemAlert("[OK] TELEMETRIA OPERACIONAL ATUALIZADA COM OS MICROSSERVIÇOS");
         setTimeout(() => setSystemAlert(null), 4000);
       }
-    } catch {
-      setSystemAlert("[ERRO] FALHA AO SINCRONIZAR COM O CLUSTER DE MICROSSERVIÇOS");
-      setTimeout(() => setSystemAlert(null), 5000);
+    } catch (err: any) {
+      if (err?.response?.status === 403 || err?.response?.status === 401) {
+        setGatewayForbidden(true);
+      } else {
+        setSystemAlert("[ERRO] FALHA AO SINCRONIZAR COM O CLUSTER DE MICROSSERVIÇOS");
+        setTimeout(() => setSystemAlert(null), 5000);
+      }
     } finally {
       setLoading(false);
       setSyncing(false);
@@ -210,12 +217,8 @@ export default function TelemetryProfileScreen() {
   }, []);
 
   useEffect(() => {
-    if (!isAdmin) {
-      setLoading(false);
-      return;
-    }
     fetchAllOperationalData();
-  }, [isAdmin, fetchAllOperationalData]);
+  }, [fetchAllOperationalData]);
 
   // Ação interativa real: repor peças de reposição no estoque MongoDB
   const handleRestockPart = async (code: string) => {
@@ -274,8 +277,8 @@ export default function TelemetryProfileScreen() {
   const totalFleetMarketValue = ships.reduce((sum, s) => sum + (s.contractRateCR ? s.contractRateCR * 15 : 4500), 0);
   const criticalArsenalCount = arsenal.filter((a) => a.belowThreshold || a.stockUnits < a.minThreshold).length;
 
-  // ── SE O USUÁRIO FOR APENAS ROLE_USER: EXIBE TELA DE ACESSO NEGADO / CLEARANCE ──
-  if (!isAdmin) {
+  // ── EXIBE TELA DE ACESSO NEGADO SOMENTE QUANDO O API GATEWAY RETORNA HTTP 403 FORBIDDEN ──
+  if (gatewayForbidden) {
     return (
       <View style={styles.container}>
         <Header

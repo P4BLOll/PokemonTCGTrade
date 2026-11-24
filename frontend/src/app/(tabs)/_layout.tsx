@@ -69,10 +69,10 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="profile"
         options={{
-          title: isAdmin ? "04 RELATÓRIOS" : "04 RELAT [🔒]",
+          title: "04 RELATÓRIOS",
           tabBarAccessibilityLabel: "04 Relatórios e Telemetria",
           tabBarIcon: ({ color, size }) => (
-            <AeroIcon name={isAdmin ? "pulse" : "lock-closed"} size={size} color={color} />
+            <AeroIcon name="pulse" size={size} color={color} />
           ),
         }}
       />
