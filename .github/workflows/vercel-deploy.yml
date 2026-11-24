@@ -85,6 +85,9 @@ jobs:
       - name: Deploy
         id: deploy
         run: |
-          url=$(vercel deploy --prebuilt ${{ steps.env.outputs.flag }} --token=${{ secrets.VERCEL_TOKEN }})
+          if ! url=$(vercel deploy --prebuilt ${{ steps.env.outputs.flag }} --token=${{ secrets.VERCEL_TOKEN }}); then
+            cp -r .vercel ../.vercel
+            url=$(cd .. && vercel deploy --prebuilt ${{ steps.env.outputs.flag }} --token=${{ secrets.VERCEL_TOKEN }})
+          fi
           echo "url=$url" >> "$GITHUB_OUTPUT"
           echo "### Deploy ${{ steps.env.outputs.target }}: $url" >> "$GITHUB_STEP_SUMMARY"
