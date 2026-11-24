@@ -8,7 +8,7 @@ spring:
   data:
     mongodb:
       auto-index-creation: true
-      uri: ${SPRING_DATA_MONGODB_URI:mongodb+srv://pablosousa386_db_user:25834864@cluster0.pm3txdf.mongodb.net/aerospace_hangar?retryWrites=true&w=majority}
+      uri: ${SPRING_DATA_MONGODB_URI:mongodb://localhost:27017/aerospace_hangar}
 
 app:
   cookie:

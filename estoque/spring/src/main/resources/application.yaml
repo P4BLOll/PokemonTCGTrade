@@ -5,7 +5,7 @@ spring:
   application:
     name: estoque
   rabbitmq:
-    addresses: ${SPRING_RABBITMQ_ADDRESSES:amqps://vazqbfxf:pAYGsDayyCI2oBvbYq3Fh18-jxKyEh6u@jackal.rmq.cloudamqp.com/vazqbfxf}
+    addresses: ${SPRING_RABBITMQ_ADDRESSES:amqp://guest:guest@localhost:5672}
     listener:
       simple:
         auto-startup: true
