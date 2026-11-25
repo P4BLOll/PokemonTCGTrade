@@ -40,7 +40,7 @@ export const TerminalLabels = {
 
   // Painéis e Rótulos do Operador (Português)
   panels: {
-    commandCenter: "CENTRO DE COMANDO ORBITAL",
+    commandCenter: "CENTRO DE COMANDO ORBITAIS",
     inspectedAsset: "ATIVO EM INSPEÇÃO",
     operational: "OPERACIONAIS",
     inMission: "EM MISSÃO",
